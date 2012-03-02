@@ -1,0 +1,11 @@
+# -FrontPage-
+
+Options None
+
+<Limit GET POST PUT DELETE>
+order deny,allow
+deny from all
+</Limit>
+AuthName bazzic.com
+AuthUserFile /home/bazzicco/public_html/_vti_pvt/service.pwd
+AuthGroupFile /home/bazzicco/public_html/_vti_pvt/service.grp
