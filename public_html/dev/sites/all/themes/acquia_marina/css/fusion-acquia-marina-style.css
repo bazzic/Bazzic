@@ -217,26 +217,26 @@ html {
   -moz-background-origin: padding;
   -moz-background-size: auto auto;
   border-top: 3px solid #a7ce38;
-  background-color: #2f76a5; /* old browsers */
+  background-color: #336566; /* old browsers */
   background-image: linear-gradient(
 	top, 
-	#2f76a5 0%, 
-	#144a6e 100%
+	#539A9B 0%, 
+	#336566 100%
   ); /* w3c */
   background-image: -o-linear-gradient(
 	top, 
-	#2f76a5 0%, 
-	#144a6e 100%
+	#539A9B 0%, 
+	#336566 100%
   ); /* opera */
   background-image: -webkit-gradient(
 	linear, left top, left bottom, 
-	from(#2f76a5),
-	to(#144a6e)
+	from(#539A9B),
+	to(#336566)
   );  /* webkit */
   background-image: -moz-linear-gradient(
 	top, 
-	#2f76a5 0%, 
-	#144a6e 100%
+	#539A9B 0%, 
+	#336566 100%
   ); /* firefox */
   color: #FFFFFF;
   min-height: 24px;
