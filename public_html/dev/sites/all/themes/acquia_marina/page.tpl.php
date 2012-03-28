@@ -16,6 +16,11 @@
                 <?php if ($logo): ?>
                 <div id="logo">
                   <a href="<?php print check_url($front_page); ?>" title="<?php print t('Home'); ?>"><img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>" /></a>
+                  
+                </div>
+                <div align="right" style="width: 500px; font-size:14px;">
+                    <a href="user">Log in</a> | 
+                    <a href="contact-us">Contact us</a>
                 </div>
                 <?php endif; ?>
                 <?php if ($site_name || $site_slogan): ?>
