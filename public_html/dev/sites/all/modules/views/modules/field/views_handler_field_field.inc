@@ -327,6 +327,9 @@ class views_handler_field_field extends views_handler_field {
     $options['delta_first_last'] = array(
       'default' => FALSE,
     );
+    $options['delta_random'] = array(
+      'default' => FALSE,
+    );
 
     $options['multi_type'] = array(
       'default' => 'separator'
@@ -519,10 +522,17 @@ class views_handler_field_field extends views_handler_field {
       '#title' => t('First and last only'),
       '#type' => 'checkbox',
       '#default_value' => $this->options['delta_first_last'],
-      '#suffix' => '</div>',
       '#dependency' => array('edit-options-group-rows' => array(TRUE)),
       '#fieldset' => 'multiple_field_settings',
     );
+    $form['delta_random'] = array(
+      '#title' => t('Random Order'),
+      '#type' => 'checkbox',
+      '#default_value' => $this->options['delta_random'],
+      '#suffix' => '</div>',
+      '#dependency' => array('edit-options-group-rows' => array(TRUE)),
+      '#fieldset' => 'multiple_field_settings',
+    );    
   }
 
   /**
@@ -699,7 +709,14 @@ class views_handler_field_field extends views_handler_field {
     if (!isset($entity->{$this->definition['field_name']})) {
       return array();
     }
-
+    
+    if ($this->options['delta_random']) {
+      $random_index = rand(0, count($entity->{$this->definition['field_name']}[$langcode]) - 1);
+      //krumo($random_index);exit;
+      $entity->{$this->definition['field_name']}[$langcode] = array($entity->{$this->definition['field_name']}[$langcode][$random_index]);
+      //krumo($entity->{$this->definition['field_name']}[$langcode]);exit;
+    }
+    
     // We are supposed to show only certain deltas.
     if ($this->limit_values && !empty($entity->{$this->definition['field_name']})) {
       $all_values = !empty($entity->{$this->definition['field_name']}[$langcode]) ? $entity->{$this->definition['field_name']}[$langcode] : array();
