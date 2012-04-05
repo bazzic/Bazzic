@@ -1640,3 +1640,10 @@ div.poll div.bar div.foreground {
   padding-right: 0;
   border-right: none;
 }
+
+/* Custom styles for OSN */
+
+.osn-home img {
+  display: block; 
+  margin: 0 auto;
+}
