@@ -20,7 +20,8 @@
                 </div>
                 <div align="right" style="width: 500px; font-size:14px;">
                     <a href="user">Log in</a> | 
-                    <a href="contact-us">Contact us</a>
+                    <a href="contact-us">Contact us</a> |
+                    <a href="sitemap">Site map</a>
                 </div>
                 <?php endif; ?>
                 <?php if ($site_name || $site_slogan): ?>
