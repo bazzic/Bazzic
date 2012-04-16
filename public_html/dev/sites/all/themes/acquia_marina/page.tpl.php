@@ -19,7 +19,11 @@
                   
                 </div>
                 <div align="right" style="width: 500px; font-size:14px;">
-                    <a href="user">Log in</a> | 
+                    <?php if (user_is_logged_in()): ?>
+                        <a href="/user/logout">Log out</a> | 
+                    <?php else: ?>
+                        <a href="/user">Log in</a> | 
+                    <?php endif; ?>
                     <a href="contact-us">Contact us</a> |
                     <a href="sitemap">Site map</a>
                 </div>
