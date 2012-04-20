@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * Implements hook_views_api().
+ */
+function osn_views_api() {
+  return array(
+    'api' => 3.0,
+    'path' => drupal_get_path('module', 'osn'),
+  );
+}
+
+function osn_form_alter(&$form, $form_state, $form_id) {
+  if (!empty($form['group_audience'])) {
+  	if (isset($form['group_audience']['und']['#options']['Other groups'])) {
+      asort($form['group_audience']['und']['#options']['Other groups']);
+  	}
+    $form['group_audience']['und']['#title'] = 'Group organisation';
+  }
+}
+
+
