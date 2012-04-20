@@ -24,7 +24,9 @@
                     <?php else: ?>
                         <a href="/user">Log in</a> | 
                     <?php endif; ?>
+                    <a href="about-os">About OS</a> |
                     <a href="contact-us">Contact us</a> |
+                    <a href="links">Links</a> |
                     <a href="sitemap">Site map</a>
                 </div>
                 <?php endif; ?>
