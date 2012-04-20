@@ -14,6 +14,6 @@ class og_handler_filter_group_audience_gid extends views_handler_filter_many_to_
         $this->value_options[$group->gid] = $group->label;
       }
     }
-    sort($this->value_options);
+    asort($this->value_options);
   }
 }
