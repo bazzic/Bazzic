@@ -21,6 +21,9 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   	}
     $form['group_audience']['und']['#title'] = 'Group organisation';
   }
+  if ($form_id == 'organisation_node_form') {
+  	unset($form['group_group']);
+  }
 }
 
 
