@@ -11,7 +11,11 @@ function osn_views_api() {
 }
 
 function osn_form_alter(&$form, $form_state, $form_id) {
-  if (!empty($form['group_audience'])) {
+  if ($form_id == 'user_register_form') {
+    asort($form['group_audience']['und']['#options']);
+  	$form['group_audience']['und']['#title'] = 'Group organisation';
+  }
+  if ($form_id == 'event_node_form' && !empty($form['group_audience'])) {
   	if (isset($form['group_audience']['und']['#options']['Other groups'])) {
       asort($form['group_audience']['und']['#options']['Other groups']);
   	}
