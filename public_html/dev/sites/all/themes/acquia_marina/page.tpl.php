@@ -22,7 +22,7 @@
                     <?php if (user_is_logged_in()): ?>
                         <a href="/user/logout">Log out</a> | 
                     <?php else: ?>
-                        <a href="/user">Log in</a> | 
+                        <a href="/user">Log in / Register</a> | 
                     <?php endif; ?>
                     <a href="about-os">About OS</a> |
                     <a href="contact-us">Contact us</a> |
