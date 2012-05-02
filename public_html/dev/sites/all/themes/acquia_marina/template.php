@@ -19,3 +19,19 @@ function acquia_marina_views_pre_render(&$view) {
     }
   }
 }
+
+function acquia_marina_menu_link(array $variables) {
+  // This allows us to highlight the Home menu item.	
+  if ($variables['element']['#title'] == 'Home' && $_GET['q'] == 'home-page') {
+    $variables['element']['#localized_options']['attributes']['class'][] = 'active-trail';
+    $variables['element']['#attributes']['class'][] = 'active-trail';
+  }
+  $element = $variables['element'];
+  $sub_menu = '';
+
+  if ($element['#below']) {
+    $sub_menu = drupal_render($element['#below']);
+  }
+  $output = l($element['#title'], $element['#href'], $element['#localized_options']);
+  return '<li' . drupal_attributes($element['#attributes']) . '>' . $output . $sub_menu . "</li>\n";
+}
