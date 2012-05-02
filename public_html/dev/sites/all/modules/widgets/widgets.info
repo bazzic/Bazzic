@@ -1,0 +1,12 @@
+name = Widgets
+description = Enables easy management of code snipets like Twitter, Facebook and Google+ buttons.
+package = Widgets
+core = 7.x
+; files[] = widgets.test
+configure = admin/structure/widgets-sets
+; Information added by drupal.org packaging script on 2012-02-12
+version = "7.x-1.0-beta5"
+core = "7.x"
+project = "widgets"
+datestamp = "1329013847"
+
