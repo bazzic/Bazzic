@@ -26,4 +26,16 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   }
 }
 
+function osn_og_membership_insert($og_membership) {
+  db_update('og_membership') // Table name no longer needs {}
+      ->fields(array(
+        'state' => '2',
+    ))
+      ->condition('id', $og_membership->id)
+      ->execute();
+}
+
+
+
+
 
