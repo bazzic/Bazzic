@@ -19,6 +19,9 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   	if (isset($form['group_audience']['und']['#options']['Other groups'])) {
       asort($form['group_audience']['und']['#options']['Other groups']);
   	}
+    if (isset($form['group_audience']['und']['#options']['My groups'])) {
+      asort($form['group_audience']['und']['#options']['My groups']);
+    }
     $form['group_audience']['und']['#title'] = 'Group organisation';
   }
   if ($form_id == 'organisation_node_form') {
@@ -33,6 +36,14 @@ function osn_og_membership_insert($og_membership) {
     ))
       ->condition('id', $og_membership->id)
       ->execute();
+}
+
+function osn_user_view($account, $view_mode, $langcode) {
+  $my_orgs = views_embed_view('og_user_groups');
+  $account->content['summary']['organisations'] =  array(
+    '#type' => 'user_profile_item',
+    '#markup' => $my_orgs,
+  );
 }
 
 
