@@ -11,6 +11,7 @@
           <div id="header-group-inner" class="header-group-inner inner clearfix">
 
             <?php if ($logo || $site_name || $site_slogan): ?>
+
             <div id="header-site-info" class="header-site-info clearfix">
               <div id="header-site-info-inner" class="header-site-info-inner gutter">
                 <?php if ($logo): ?>
@@ -18,16 +19,19 @@
                   <a href="<?php print check_url($front_page); ?>" title="<?php print t('Home'); ?>"><img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>" /></a>
                   
                 </div>
-                <div align="right" style="width: 500px; font-size:14px;">
-                    <?php if (user_is_logged_in()): ?>
-                        <a href="/user/logout">Log out</a> | 
-                    <?php else: ?>
-                        <a href="/user">Log in / Register</a> | 
-                    <?php endif; ?>
+                <div align="right" style="width: 960px; font-size:14px;">
                     <a href="about-os">About OS</a> |
                     <a href="contact-us">Contact us</a> |
                     <a href="links">Links</a> |
-                    <a href="sitemap">Site map</a>
+                    <a href="site-guide">Site guide</a> |
+                    <a href="sitemap">Site map</a> | 
+                    <?php if (user_is_logged_in()): ?>
+                        <a href="/user">My account</a> | 
+                        <a href="/user/logout">Log out</a>
+                        
+                    <?php else: ?>
+                        <a href="/user">Log in / Register</a>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
                 <?php if ($site_name || $site_slogan): ?>
