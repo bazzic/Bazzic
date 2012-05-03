@@ -1,0 +1,48 @@
+<?php
+/**
+ * @file
+ * OG Role access - hook implementations and access function for views hook_menu.
+ */
+
+/**
+ * Implements hook_views_api().
+ */
+function og_role_access_views_api() {
+  return array(
+    'api'  => 3.0,
+    'path' => drupal_get_path('module', 'og_role_access'),
+  );
+}
+
+function og_role_access_check_role($roles = array()) {
+  global $user;
+  
+  if (!isset($user->uid) || !($user->uid > 0)) { 
+    return FALSE;
+  }
+  else {
+    $uid = $user->uid;
+  }
+  
+  $userroles = og_get_user_roles(arg(1), $uid);
+  $allogroles = og_get_global_roles();
+  
+  $ogroles = array();
+  if (!empty($roles)) {
+    foreach ($roles as $key) {
+      $ogroles[$key] = $allogroles[$key];
+    }
+  }
+  
+  if (!empty($userroles)) {
+    foreach ($ogroles as $key => $role) {
+      foreach ($userroles as $key2 => $userrole) {
+        if ($key == $userrole || $uid == 1) {
+          return TRUE;
+        }
+      }
+    }   
+  }
+
+  return FALSE;
+}

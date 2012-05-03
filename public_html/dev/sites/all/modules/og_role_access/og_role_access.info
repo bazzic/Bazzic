@@ -1,0 +1,9 @@
+name = OG Role Access
+description = Gives a view access control based on the OG group role of the current user.
+package = "Organic groups"
+core = 7.x
+
+dependencies[] = og
+dependencies[] = views
+
+files[] = og_role_access_plugin_access_role.inc
