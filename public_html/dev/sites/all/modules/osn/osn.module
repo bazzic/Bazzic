@@ -12,6 +12,8 @@ function osn_views_api() {
 
 function osn_form_alter(&$form, $form_state, $form_id) {
   if ($form_id == 'event_node_form') {
+    // Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
+  	print '&nbsp';
     $form['field_link']['und']['add_more']['#value'] = 'Add another weblink';
     $form['field_event_date']['und']['add_more']['#value'] = 'Add another date';
   }
@@ -30,6 +32,8 @@ function osn_form_alter(&$form, $form_state, $form_id) {
     $form['group_audience']['und']['#title'] = 'Group organisation';
   }
   if ($form_id == 'organisation_node_form') {
+  	// Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
+    print '&nbsp';
   	unset($form['group_group']);
   	$form['field_link']['und']['add_more']['#value'] = 'Add another weblink';
   }
