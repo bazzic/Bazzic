@@ -566,6 +566,8 @@ function date_popup_format_to_popup($format) {
   if (empty($format)) {
     $format = 'Y-m-d';
   }
+  // HACK: Always show the British format.
+  $format = 'd-m-Y';
   $replace = date_popup_datepicker_format_replacements();
   return strtr($format, $replace);
 }
