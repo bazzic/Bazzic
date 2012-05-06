@@ -10,18 +10,35 @@ function osn_views_api() {
   );
 }
 
-function osn_form_alter(&$form, $form_state, $form_id) {
+function osn_form_alter(&$form, $form_state, $form_id) {  
+  //krumo($form);
+  global $user;
+  
+  if ($user->uid == 0 || ($user->uid != 1 && $user->name != 'sitemanager')) {
+    unset($form['options']['promote']);
+    unset($form['options']['sticky']);
+  }
+  
+  if ($form_id == 'views_exposed_form') {
+  	$form['group']['#size'] = 9;
+  }
+  
   if ($form_id == 'event_node_form') {
     // Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
   	print '&nbsp';
     $form['field_link']['und']['add_more']['#value'] = 'Add another weblink';
     $form['field_event_date']['und']['add_more']['#value'] = 'Add another date';
+    // We are reusing the promote checkbox to actually remove items from the home page.  If you see the filter in
+    // the home page view and are confused by it, this is why.
+    $form['options']['promote']['#title'] = 'Remove from home page';
+    drupal_set_title('Add Event');
   }
   
   if ($form_id == 'user_register_form') {
     asort($form['group_audience']['und']['#options']);
-  	$form['group_audience']['und']['#title'] = 'Group organisation';
+  	$form['group_audience']['und']['#title'] = 'Group';
   }
+  
   if ($form_id == 'event_node_form' && !empty($form['group_audience'])) {
   	if (isset($form['group_audience']['und']['#options']['Other groups'])) {
       asort($form['group_audience']['und']['#options']['Other groups']);
@@ -29,29 +46,40 @@ function osn_form_alter(&$form, $form_state, $form_id) {
     if (isset($form['group_audience']['und']['#options']['My groups'])) {
       asort($form['group_audience']['und']['#options']['My groups']);
     }
-    $form['group_audience']['und']['#title'] = 'Group organisation';
+    $form['group_audience']['und']['#title'] = 'Group';
   }
+  
   if ($form_id == 'organisation_node_form') {
   	// Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
     print '&nbsp';
   	unset($form['group_group']);
+  	unset($form['group_register']);
   	$form['field_link']['und']['add_more']['#value'] = 'Add another weblink';
+  	drupal_set_title('Add Organisation');
   }
+}
+
+function osn_menu_alter(&$items) {
+	print 'howdy howdy';
+  print_r($items);
 }
 
 // This sets the membership to pending after a user registers for an organisation.
 function osn_og_membership_insert($og_membership) {
-  db_update('og_membership') // Table name no longer needs {}
-      ->fields(array(
-        'state' => '2',
-    ))
-      ->condition('id', $og_membership->id)
-      ->execute();
+  global $user;
+  if ($user->name != 'sitemanager') {
+    db_update('og_membership') // Table name no longer needs {}
+        ->fields(array(
+            'state' => '2',
+        ))
+        ->condition('id', $og_membership->id)
+        ->execute();
+  }
 }
 
 function osn_user_view($account, $view_mode, $langcode) {
   $my_orgs = views_embed_view('og_user_groups');
-  $account->content['summary']['organisations'] =  array(
+  $account->content['organisations'] =  array(
     '#title' => '',
     '#type' => 'user_profile_item',
     '#markup' => $my_orgs,
