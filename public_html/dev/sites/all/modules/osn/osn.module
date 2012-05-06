@@ -11,7 +11,6 @@ function osn_views_api() {
 }
 
 function osn_form_alter(&$form, $form_state, $form_id) {  
-  //krumo($form);
   global $user;
   
   if ($user->uid == 0 || ($user->uid != 1 && $user->name != 'sitemanager')) {
@@ -39,7 +38,7 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   	$form['group_audience']['und']['#title'] = 'Group';
   }
   
-  if ($form_id == 'event_node_form' && !empty($form['group_audience'])) {
+  if (($form_id == 'event_node_form' ||  $form_id == 'user_profile_form') && !empty($form['group_audience'])) {
   	if (isset($form['group_audience']['und']['#options']['Other groups'])) {
       asort($form['group_audience']['und']['#options']['Other groups']);
   	}
