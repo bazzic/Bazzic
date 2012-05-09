@@ -10,6 +10,9 @@ function osn_views_api() {
   );
 }
 
+/**
+ * Implements hook_form_alter().
+ */
 function osn_form_alter(&$form, $form_state, $form_id) {  
   global $user;
   
@@ -59,14 +62,14 @@ function osn_form_alter(&$form, $form_state, $form_id) {
 }
 
 function osn_menu_alter(&$items) {
-	print 'howdy howdy';
-  print_r($items);
+	//print 'howdy howdy';
+  //print_r($items);
 }
 
 // This sets the membership to pending after a user registers for an organisation.
 function osn_og_membership_insert($og_membership) {
   global $user;
-  if ($user->name != 'sitemanager') {
+  if ($user->uid == 0 || $user->name != 'sitemanager') {
     db_update('og_membership') // Table name no longer needs {}
         ->fields(array(
             'state' => '2',
