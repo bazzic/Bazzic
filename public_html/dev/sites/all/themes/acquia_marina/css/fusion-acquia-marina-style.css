@@ -5,6 +5,7 @@
 
 body {
   font-size: 75%;
+  line-height: 100%;
 }
 
 h1 {
@@ -168,7 +169,7 @@ html {
 
 #logo {
   float: left;
-  margin: 0 15px 0 0;
+  margin: 18px 15px 0 0;
 }
 
 #site-name-wrapper {
@@ -177,10 +178,11 @@ html {
 
 #site-name {
   font-family: "Myriad Pro", "Myriad Web Pro Regular", "Lucida Grande", Geneva, Trebuchet MS, sans-serif;
-  font-size: 300%;
+  font-size: 200%;
   line-height: 125%;
   font-weight: normal;
   border: none;
+  margin-top: 30px;
 }
 
 /* Typography for site slogan */
