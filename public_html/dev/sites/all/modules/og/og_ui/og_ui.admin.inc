@@ -298,7 +298,7 @@ function og_ui_user_admin_account_submit($form, &$form_state) {
 
   // If the operation is unblock, block or deny, we make sure the group manager
   // isn't being processed, if they were selected.
-  if (in_array($form_state['values']['operation'], array('unblock', 'deny', 'block'))) {
+  /*if (in_array($form_state['values']['operation'], array('unblock', 'deny', 'block'))) {
     // Get the entity from group.
     $entity = $group->getEntity();
 
@@ -307,7 +307,7 @@ function og_ui_user_admin_account_submit($form, &$form_state) {
       unset($accounts[$entity->uid]);
       drupal_set_message('This update can not be used on the group manager.');
     }
-  }
+  }*/
 
   if ($accounts && $function = $operation['callback']) {
     // Add in callback arguments if present.
