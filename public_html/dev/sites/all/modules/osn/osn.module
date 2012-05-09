@@ -38,6 +38,7 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   
   if ($form_id == 'user_register_form') {
     asort($form['group_audience']['und']['#options']);
+    $form['group_audience']['und']['#options']['not_listed'] = 'Group not listed yet';
   	$form['group_audience']['und']['#title'] = 'Group';
   }
   
@@ -52,6 +53,7 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   }
   
   if ($form_id == 'organisation_node_form') {
+  	krumo($form);
   	// Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
     print '&nbsp';
   	unset($form['group_group']);
