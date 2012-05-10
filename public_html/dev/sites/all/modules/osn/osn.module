@@ -23,6 +23,7 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   
   if ($form_id == 'views_exposed_form') {
   	$form['group']['#size'] = 9;
+  	$form['field_event_date_value']['value']['#date_format'] = 'd-m-Y';
   }
   
   if ($form_id == 'event_node_form') {
@@ -70,7 +71,7 @@ function osn_menu_alter(&$items) {
   //$is_org_admin = db_query("SELECT * FROM {og_users_roles} WHERE uid=%d AND rid=3", $user->uid)->fetchField();
   //print $is_org_admin;
   //$userroles = og_get_user_roles(arg(1), $uid);
-  unset($items['user/%user_category/edit/activitystream']);
+  //unset($items['user/%user_category/edit/activitystream']);
   //print_r($items);
 }
 
