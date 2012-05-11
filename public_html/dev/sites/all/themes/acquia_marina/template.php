@@ -183,7 +183,7 @@ function acquia_marina_textarea($variables) {
   }
 
   $output = '<div' . drupal_attributes($wrapper_attributes) . '>';
-  if (arg(2) == 'event') {
+  if (arg(2) == 'event' && $element['#field_name'] == 'body') {
     $output .= 'Only the first 500 characters from the description field will show on the home page. For organisations with no weblink, visitors will be taken to your organisation page where they can read the full description.';
   }
   $output .= '<textarea' . drupal_attributes($element['#attributes']) . '>' . check_plain($element['#value']) . '</textarea>';
