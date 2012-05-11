@@ -42,6 +42,11 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   }
   
   if ($form_id == 'user_register_form') {
+  	$form['some_text'] = array(
+        '#type' => 'item',
+        '#markup' => "<p><b>Only register on this site if you'd like to add art organisations and events.</b></p>",
+        '#weight' => -10,
+    );
     asort($form['group_audience']['und']['#options']);
     $form['group_audience']['und']['#options'][0] = 'Group not listed yet';
   	$form['group_audience']['und']['#title'] = 'Group';
@@ -60,6 +65,11 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   }
   
   if ($form_id == 'organisation_node_form') {
+  	$form['some_text'] = array(
+        '#type' => 'item',
+        '#markup' => "<p><b>When your organisation shows as published on this site you will be able to post events</b></p>",
+        '#weight' => -10,
+    );
   	// Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
     print '&nbsp';
   	unset($form['group_group']);
