@@ -14,7 +14,11 @@ function osn_views_api() {
  * Implements hook_form_alter().
  */
 function osn_form_alter(&$form, $form_state, $form_id) {  
+  //krumo($form);
   global $user;
+  
+  $is_org_admin = db_query("SELECT count(gid) FROM {og_users_roles} WHERE uid=:uid AND rid=3", array(':uid' => $user->uid))->fetchField();
+  //print $is_org_admin;exit;
   
   if ($user->uid == 0 || ($user->uid != 1 && $user->name != 'sitemanager')) {
     unset($form['options']['promote']);
@@ -39,9 +43,10 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   
   if ($form_id == 'user_register_form') {
     asort($form['group_audience']['und']['#options']);
-    $form['group_audience']['und']['#options']['not_listed'] = 'Group not listed yet';
+    $form['group_audience']['und']['#options'][0] = 'Group not listed yet';
   	$form['group_audience']['und']['#title'] = 'Group';
   	$form['account']['name']['#description'] = 'Spaces are allowed; punctuation is not allowed except for full stops, hyphens, apostrophes, and underscores.';
+    $form['account']['mail']['#description'] = 'A valid e-mail address. All e-mails from the system will be sent to this address. The e-mail address is not made public.';
   }
   
   if (($form_id == 'event_node_form' ||  $form_id == 'user_profile_form') && !empty($form['group_audience'])) {
@@ -64,16 +69,7 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   }
 }
 
-function osn_menu_alter(&$items) {
-	//print 'howdy howdy';
-  global $user;
-  //print_r($user);
-  //$is_org_admin = db_query("SELECT * FROM {og_users_roles} WHERE uid=%d AND rid=3", $user->uid)->fetchField();
-  //print $is_org_admin;
-  //$userroles = og_get_user_roles(arg(1), $uid);
-  //unset($items['user/%user_category/edit/activitystream']);
-  //print_r($items);
-}
+
 
 // This sets the membership to pending after a user registers for an organisation.
 function osn_og_membership_insert($og_membership) {
@@ -95,6 +91,10 @@ function osn_user_view($account, $view_mode, $langcode) {
     '#type' => 'user_profile_item',
     '#markup' => $my_orgs,
   );
+}
+
+function osn_block_list_alter(&$blocks) {
+  //krumo($blocks);
 }
 
 
