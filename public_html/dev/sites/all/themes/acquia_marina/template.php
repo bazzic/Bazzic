@@ -166,3 +166,27 @@ function acquia_marina_field_multiple_value_form($variables) {
 
   return $output;
 }
+
+function acquia_marina_textarea($variables) {
+  $element = $variables['element'];
+  element_set_attributes($element, array('id', 'name', 'cols', 'rows'));
+  _form_set_class($element, array('form-textarea'));
+
+  $wrapper_attributes = array(
+    'class' => array('form-textarea-wrapper'),
+  );
+
+  // Add resizable behavior.
+  if (!empty($element['#resizable'])) {
+    drupal_add_library('system', 'drupal.textarea');
+    $wrapper_attributes['class'][] = 'resizable';
+  }
+
+  $output = '<div' . drupal_attributes($wrapper_attributes) . '>';
+  if (arg(2) == 'event') {
+    $output .= 'Only the first 500 characters from the description field will show on the home page. For organisations with no weblink, visitors will be taken to your organisation page where they can read the full description.';
+  }
+  $output .= '<textarea' . drupal_attributes($element['#attributes']) . '>' . check_plain($element['#value']) . '</textarea>';
+  $output .= '</div>';
+  return $output;
+}
