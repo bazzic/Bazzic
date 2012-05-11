@@ -1,0 +1,6 @@
+name = Unlimited Field Remove
+description = Adds a remove button for selected fields that accept unlimited values.
+core = 7.x
+version = 7.x-0.3
+configure = admin/config/unlimitedfield_remove
+stylesheets[all][] = unlimitedfield_remove.css

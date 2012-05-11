@@ -1,0 +1,10 @@
+div.unlimitedfield_remove_button {
+  float: right;
+  border: 1px solid #888;
+  padding: 3px 6px;
+  cursor: pointer;
+  background: #fff;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
+}
