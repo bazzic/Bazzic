@@ -20,11 +20,11 @@
                   
                 </div>
                 <div align="right" style="width: 960px; font-size:14px;">
-                    <a href="about-os">About OS</a> |
-                    <a href="contact-us">Contact us</a> |
-                    <a href="links">Links</a> |
-                    <a href="site-guide">Site guide</a> |
-                    <a href="sitemap">Site map</a> | 
+                    <a href="/about-os">About OS</a> |
+                    <a href="/contact-us">Contact us</a> |
+                    <a href="/links">Links</a> |
+                    <a href="/site-guide">Site guide</a> |
+                    <a href="/sitemap">Site map</a> | 
                     <?php if (user_is_logged_in()): ?>
                         <a href="/user">My account</a> | 
                         <a href="/user/logout">Log out</a>
