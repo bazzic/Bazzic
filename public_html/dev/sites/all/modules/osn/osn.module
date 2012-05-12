@@ -107,6 +107,12 @@ function osn_block_list_alter(&$blocks) {
   //krumo($blocks);
 }
 
+function osn_node_access($node, $op, $account) {
+  if ($op == 'delete' && is_object($node) && $node->type == 'organisation' && $account->name != 'sitemanager') {
+  	return NODE_ACCESS_DENY;
+  }
+}
+
 
 
 
