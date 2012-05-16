@@ -111,11 +111,21 @@ function osn_user_view($account, $view_mode, $langcode) {
 
 /**
  * Implements hook_node_access().
- * This removes delete permissions in organisations for everyone except sitemanager.
  */
 function osn_node_access($node, $op, $account) {
+  // This removes delete permissions in organisations for everyone except sitemanager.
   if ($op == 'delete' && is_object($node) && $node->type == 'organisation' && $account->name != 'sitemanager') {
   	return NODE_ACCESS_DENY;
+  }
+  
+  // This allows access to the org_admin_page for any org admin.
+  if ((is_object($node) && $node->type == 'org_admin_page' || $node == 'org_admin_page') && is_org_admin($account->uid)) {
+  	return NODE_ACCESS_ALLOW;
+  }
+  
+  // This allows access to the member_page for any member.
+  if ((is_object($node) && $node->type == 'member_page' || $node == 'member_page') && is_member($account->uid)) {
+    return NODE_ACCESS_ALLOW;
   }
 }
 
@@ -134,6 +144,10 @@ function osn_menu_local_tasks_alter(&$data, $router_item, $root_path) {
 
 function is_org_admin($uid) {
   return db_query("SELECT * FROM {og_users_roles} WHERE uid=:uid AND rid=3", array (':uid' => $uid))->fetchField();
+}
+
+function is_member($uid) {
+  return db_query("SELECT * FROM {og_membership} WHERE etid=:uid AND entity_type='user'", array (':uid' => $uid))->fetchField();
 }
 
 
