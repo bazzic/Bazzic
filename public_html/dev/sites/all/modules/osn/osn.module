@@ -13,7 +13,7 @@ function osn_views_api() {
 /**
  * Implements hook_form_alter().
  */
-function osn_form_alter(&$form, $form_state, $form_id) {  
+function osn_form_alter(&$form, $form_state, $form_id) { 
   global $user;
   
   if ($user->uid == 0 || ($user->uid != 1 && $user->name != 'sitemanager')) {
@@ -27,6 +27,8 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   }
   
   if ($form_id == 'event_node_form') {
+    // We don't want users to see the Other Groups when they create an event.
+    unset($form['group_audience']['und']['#options']['Other groups']);
   	$form['field_location_tid']['und']['#size'] = 9;
     // Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
   	print '&nbsp';
@@ -118,9 +120,17 @@ function osn_og_membership_insert($og_membership) {
  * This puts the og_user_groups view on the user's account page and displays all organisations for the sitemanager.
  */
 function osn_user_view($account, $view_mode, $langcode) {
-  $my_orgs = views_embed_view('og_user_groups', 'page_1');
+  $admin_orgs = views_embed_view('og_user_groups', 'page_1');
   $all_orgs = views_embed_view('og_user_groups', 'page_2');
-  $orgs = $account->name == 'sitemanager' ? $all_orgs : $my_orgs;
+  $member_orgs = views_embed_view('og_user_groups', 'page_3');
+  
+  if ($account->name == 'sitemanager' || $account->uid == 1) {
+    $orgs = $all_orgs;
+  } elseif (is_org_admin($account->uid)) {
+    $orgs = $admin_orgs;
+  } elseif (is_member($account->uid)) {
+    $orgs = $member_orgs;
+  }
 
   $account->content['organisations'] =  array(
 	'#title' => '',
