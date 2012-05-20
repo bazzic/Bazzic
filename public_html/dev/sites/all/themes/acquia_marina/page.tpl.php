@@ -20,7 +20,6 @@
                   
                 </div>
                 <div align="right" style="width: 960px; font-size:14px;">
-                    <a href="/about-os">About OS</a> |
                     <a href="/contact-us">Contact us</a> |
                     <a href="/links">Links</a> |
                     <a href="/site-guide">Site guide</a> |

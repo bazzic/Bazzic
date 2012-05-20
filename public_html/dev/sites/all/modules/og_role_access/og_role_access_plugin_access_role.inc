@@ -7,7 +7,6 @@
 
 class og_role_access_plugin_access_role extends views_plugin_access {
   function get_access_callback() {
-  	print_r($this);
     return array('og_role_access_check_role', array($this->options['og_roles']));
   }
 

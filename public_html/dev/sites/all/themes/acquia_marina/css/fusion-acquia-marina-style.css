@@ -5,7 +5,6 @@
 
 body {
   font-size: 75%;
-  line-height: 100%;
 }
 
 h1 {
@@ -1648,4 +1647,12 @@ div.poll div.bar div.foreground {
 .osn-home img {
   display: block; 
   margin: 0 auto;
+}
+
+.views-field-field-logo {
+  line-height:50%;
+}
+
+.block-webform {
+  width: 900px;
 }
