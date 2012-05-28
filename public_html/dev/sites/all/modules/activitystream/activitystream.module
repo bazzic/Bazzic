@@ -1,0 +1,938 @@
+<?php
+
+/**
+  * @file
+  * Activity Stream module
+  */
+  
+define('ACTIVITYSTREAM_DEFAULT_INTRO', t('Welcome to your Activity Stream setup page. You can create a lifestream by simply providing some account information for third party sites.'));
+
+/**
+ * Invoke a node hook.
+ *
+ * @param $module
+ *   The name of your module 
+ *
+ * @param &$user
+ *   A user object containing the user that you're saving account info 
+ *   for.
+ * 
+ * @param $params
+ *   An array containing the user's account info. All fields are
+ *   optional, but if you don't send anything, nothing will be saved
+ *   Fields:
+ *      userid: The user's account id on the remote site
+ *      password: The user's password on the remote site. Don't
+ *          ask for and store the users's password unless it's
+ *          neccessary. You can often get read access to the 
+ *          site's data with just their username.
+ *      feed: An RSS or Atom feed URL containing that user's
+ *          stream from the remote site
+ * @return
+ *   True if the information was saved
+ */
+function activitystream_save_account($module, &$user, $params) {
+  if (count($params) == 0) {
+    return FALSE;
+  }
+  $result = db_query('DELETE FROM {activitystream_accounts} WHERE module = :module and uid = :uid', array(':module' => $module, ':uid'  => $user->uid));
+  if (empty($params['userid']) && empty($params['password']) && empty($params['feed'])) {
+    return;
+  }
+  // Save multiline feed fields each to a different feed
+  $arrfeeds = split("\n", $params['feed']);
+  $users = array();
+  foreach ($arrfeeds as $url) {
+    $params['feed'] = $url;
+    $result = db_query('INSERT INTO {activitystream_accounts} (module, uid, userid, password, feed, lastfetch) VALUES (:module, :uid, :userid, :password, :feed, now())', array(':module' => $module, ':uid' => $user->uid, ':userid' => $params['userid'], ':password' => $params['password'], ':feed' => $params['feed']));
+    $user = (object) array(
+        'uid' => $user->uid,
+        'userid' => $params['userid'],
+        'password' => $params['password'],
+        'feed' => $params['feed'],
+        'module' => $module
+      );
+    $users[] = $user;
+  }
+  $num_users = activitystream_update_streams($users, FALSE);
+  return TRUE;
+}
+
+function activitystream_menu() {
+  $items = array();
+
+  $items['admin/config/system/activitystream'] = array(
+    'title' => 'Activity Stream',
+    'description' => 'Administer settings for activity feeds',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('activitystream_settings'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['stream/feed'] = array(
+    'title' => 'Activity Stream Feed',
+    'page callback' => 'activitystream_feed',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['stream'] = array(
+    'title' => 'Activity Stream',
+    'page callback' => 'activitystream_page',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function activitystream_permission() {
+  $default_perms = array(
+    'edit own stream items' => array('title' => t('Edit own stream items')), 
+    'edit any stream item' => array('title' => t('Edit any stream items')), 
+    'delete own stream items' => array('title' => t('Delete own stream items')), 
+    'delete any stream item' => array('title' => t('Delete own stream items'))
+  );
+  $module_perms = array();
+  foreach (module_implements('activitystream_settings') as $name) {
+    $module_perms['use ' . $name] = array('title' => t('Use') . ' ' . $name . ' ' . t('module'));
+  }
+  //TODO: Get description from individual modules
+  return array_merge($default_perms, $module_perms);
+}
+
+/**
+ * Implementation of hook_node_info().
+ */
+function activitystream_node_info() {
+  return array(
+    'activitystream' => array(
+      'name'        => t('Activity Stream Item'),
+      'base'      => 'activitystream',
+      'description' => t('A node type to contain items from your activity stream. You shouldn\'t create these nodes directly.'),
+      'help'        => t('A node type to contain items from your activity stream. You shouldn\'t create these nodes directly.'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_access().
+ *
+ * Define four different access controls. "edit/delete own content" and 
+ * "edit/delete any content"
+ */
+function activitystream_access($op, $node, $account) {
+  if ($op == 'update') {
+    if (user_access('edit own stream items', $account) && ($account->uid == $node->uid)) {
+      return TRUE;
+    }
+    return user_access('edit any stream item', $account);
+  }
+
+  if ($op == 'delete') {
+    if (user_access('delete own stream items', $account) && ($account->uid == $node->uid)) {
+      return TRUE;
+    }
+    return user_access('delete any stream item', $account);
+  }
+}
+
+/**
+ * Implementation of hook_nodeapi(). 
+ * When a node is deleted, also delete the associated record in the stream table.
+ */
+function activitystream_node_delete($node) {
+ db_delete('activitystream')
+    ->condition('nid', $node->nid)
+    ->execute();
+}
+
+/**
+ * Implementation of hook_form().
+ * Build the node edit form for a Activity Stream node.
+ */
+function activitystream_form(&$node) {
+  $types = node_type_get_types();
+  $type = $types['activitystream'];
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t(check_plain($type->title_label)),
+    '#required' => TRUE,
+    '#default_value' => $node->title,
+    '#weight' => -5,
+  );    
+
+  return $form;
+}
+
+function activitystream_form_alter(&$form, &$form_state, $form_id) {
+  if (isset($form['#user_category']) && $form['#user_category'] == 'activitystream') {
+    drupal_set_title(variable_get('activitystream_title', 'Activity Stream'));
+    $form['intro'] = array(
+      '#type' => 'item',
+      '#markup' => '<p>' . variable_get('activitystream_user_description', ACTIVITYSTREAM_DEFAULT_INTRO) . '</p>',
+      '#weight' => -10,
+    );
+
+    foreach (module_implements('activitystream_settings') as $name) {
+      if (user_access('use ' . $name)) {
+        $function = $name . '_activitystream_settings';
+        $edit = activity_stream_settings_default_values($form['#user']->uid, $name);
+        $elements = $function($edit);
+        foreach ($elements as $key => $value) {
+          $form[$key] = $value;
+        }          
+      }
+    }
+    $form['#submit'] = array_merge($form['#submit'], array('activitystream_user_submit'));
+  }
+}
+
+function activity_stream_settings_default_values($uid, $module) {
+  $query = db_query("SELECT userid, password, feed FROM {activitystream_accounts} WHERE uid = :uid AND module = :module", array(':uid' => $uid, ':module' => $module));
+  $as = $query->fetchObject();
+  if ($as)
+  return array($module . '_userid' => $as->userid, $module . '_feed' => $as->feed, $module . '_password' => $as->password);
+}
+function activitystream_user_submit($form, $form_state) {
+    foreach (module_implements('activitystream_settings') as $name) {
+      if (user_access('use ' . $name)) {
+        $edit = $form[$name];
+        $account = $form['#user'];
+        $arrdetails = array();
+        $arrdetails['userid'] = (array_key_exists($name . '_userid', $edit)) ? $edit[$name . '_userid']['#value'] : NULL;
+        $arrdetails['password'] = (array_key_exists($name . '_password', $edit)) ? ($edit[$name . '_password']['#value']) : NULL;
+        $arrdetails['feed'] = (array_key_exists($name . '_feed', $edit)) ? $edit[$name . '_feed']['#value'] : NULL;
+        activitystream_save_account($name, $account, $arrdetails);
+      }
+    }
+}
+function activitystream_user_categories() {
+    return array(
+      array(
+        'name' => 'activitystream', 
+        'title' => variable_get('activitystream_title', 'Activity Stream'), 
+        'weight' => 2,
+        'access callback' => 'activitystream_category_access',
+        'access arguments' => array(1),
+        )
+      );
+}
+
+
+
+/**
+ * Implementation of hook_user()
+ */
+function activitystream_user($op, &$edit, &$account, $category = NULL) {
+  /*
+switch ($op) {
+    case 'categories':    
+      return array(
+        array(
+          'name' => 'activitystream', 
+          'title' => variable_get('activitystream_title', 'Activity Stream'), 
+          'weight' => 2,
+          'access callback' => 'activitystream_category_access',
+          'access arguments' => array(1),
+          )
+        );
+      break;
+    case 'form':
+      if ($category == 'activitystream') {
+        drupal_set_title(variable_get('activitystream_title', 'Activity Stream'));
+        $form = array();
+        $form['intro'] = array(
+          '#value' => '<p>' . variable_get('activitystream_user_description', ACTIVITYSTREAM_DEFAULT_INTRO) . '</p>',
+          '#weight' => -10,
+        );
+      
+        foreach (module_implements('activitystream_settings') as $name) {
+          if (user_access('use ' . $name)) {
+            $function = $name . '_activitystream_settings';
+            $elements = $function($edit);
+            foreach ($elements as $key => $value) {
+              $form[$key] = $value;
+            }          
+          }
+        }
+      }
+      return $form;
+      break;
+    case 'update':
+      if ($category != 'activitystream') {
+        // The user is saving another tab on the account page, so don't
+        // run the activity stream settings
+        break;
+      }
+      foreach (module_implements('activitystream_settings') as $name) {
+        if (user_access('use ' . $name)) {
+          $arrdetails = array();
+          $arrdetails['userid'] = (array_key_exists($name . '_userid', $edit)) ? $edit[$name . '_userid'] : NULL;
+          $arrdetails['password'] = (array_key_exists($name . '_password', $edit)) ? ($edit[$name . '_password']) : NULL;
+          $arrdetails['feed'] = (array_key_exists($name . '_feed', $edit)) ? $edit[$name . '_feed'] : NULL;
+          activitystream_save_account($name, $account, $arrdetails);
+        }
+      }
+      break;
+    case 'view':    
+      $items = activitystream_get_activity($account);
+      $title = variable_get('activitystream_title', 'Activity Stream');
+      $account->content['activitystream'] =  array(
+        '#type' => 'user_profile_item',
+        '#title' => $title,
+        '#value' => theme('activitystream', $items),
+        '#weight' => 8,
+        '#attributes' => array('class' => 'activitystream'),
+       );
+      break;
+    case 'delete':
+      $result = db_query('DELETE FROM {activitystream_accounts} WHERE uid = %d', $account->uid);
+      break;
+  }
+*/
+
+}
+
+function activitystream_category_access($account) {
+  if (user_access('administer users') && $account->uid > 0) {
+    return TRUE;
+  }
+  $stream_permissions = FALSE;
+  foreach (module_implements('activitystream_settings') as $name) {
+    if (user_access("use $name")) {
+      $stream_permissions = TRUE;
+    }
+  }
+  return $stream_permissions;
+}
+
+function activitystream_page($uid = 0) {
+  drupal_add_css(drupal_get_path('module', 'activitystream') . '/activitystream.css');
+  $title = variable_get('activitystream_title', 'Activity Stream');
+  if ($uid) {
+    $user = _activitystream_user_load($uid);
+    drupal_set_title(check_plain($user->name . '\'s ' . $title));
+    $items = activitystream_get_activity($user);
+    drupal_set_breadcrumb(array(l(t('Home'), NULL), l(t('Activity Stream'), 'stream')));
+  } 
+  else {
+    drupal_set_title(check_plain('All user\'s ' . $title . 's'));
+    $items = activitystream_get_activity();    
+  }
+  $output = theme('activitystream', array('items' => $items));
+  
+  return $output;
+}
+
+function activitystream_feed($uid = 0) {
+  global $base_url, $language;
+  
+  $title = variable_get('activitystream_title', 'Activity Stream');
+  if ($uid) {
+    $user = _activitystream_user_load($uid);
+    $title = check_plain($user->name . '\'s ' . $title);
+    $items = _activitystream_get_activity($user);
+  } 
+  else {
+    $user = check_plain('All user\'s ' . $title . 's');
+    $items = _activitystream_get_activity();    
+  }
+  
+  foreach ($items as $item) {
+    if (function_exists('theme_' . $item->module . '_item')) {
+      $theme_function = $item->module . '_item';
+    } 
+    else {
+      $theme_function = 'activitystream_item';
+    }
+    $text = theme($theme_function, $item);
+    $node = node_load($item->nid);
+    $extra = array_merge(array(array('key' => 'pubDate', 'value' => gmdate('r', $node->created)), array('key' => 'dc:creator', 'value' => $node->name), array('key' => 'guid', 'value' => $node->nid . ' at ' . $base_url . '/stream', 'attributes' => array('isPermaLink' => 'false'))));
+    $feed_items .= format_rss_item($item->title, $item->link, $text, $extra);
+    foreach ($extra as $element) {
+      if (isset($element['namespace'])) {
+        $namespaces = array_merge($namespaces, $element['namespace']);
+      }
+    }
+  }
+  $channel_link = $base_url . '/stream';
+  if ($uid) {
+    $channel_link .= '/' . $uid;
+  }
+  $channel = array(
+    'version'     => '2.0',
+    'title'       => $title . ' - ' . variable_get('site_name', 'Drupal'),
+    'link'        => $channel_link,
+    'description' => variable_get('site_mission', ''),
+    'language'    => $language->language
+  );
+ 
+  $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+  $output .= "<rss version=\"" . $channel["version"] . "\" xml:base=\"" . $base_url . "\" " . drupal_attributes($namespaces) . ">\n";
+  $output .= format_rss_channel($channel['title'], $channel['link'], $channel['description'], $feed_items, $channel['language']);
+  $output .= "</rss>\n";
+
+  drupal_set_header('Content-Type: application/rss+xml; charset=utf-8');
+  print $output;
+}
+
+/*
+  hook_view
+*/
+function activitystream_view($node, $teaser = FALSE, $page = FALSE) {
+  $user = _activitystream_user_load($node->uid);
+  $title = variable_get('activitystream_title', 'Activity Stream');
+  $result = db_query('SELECT s.module, s.link, s.data, s.nid FROM {activitystream} s WHERE s.nid=:nid', array(':nid' => $node->nid));      
+  $action = $result->fetchObject();
+
+  $body_append = theme('activitystream_view', array('activity' => (array)$action));
+  $node->body[LANGUAGE_NONE][] = array('value' => $body_append, 'format' => 'full_html');
+
+  if ($page) {
+    // Breadcrumb navigation
+    $breadcrumb[] = l($title, 'stream');
+    $breadcrumb[] = l($user->name . '\'s ' . $title, 'stream/' . $user->uid);
+    $breadcrumb[] = l($node->nid, 'node/');
+    drupal_set_breadcrumb($breadcrumb);
+  }
+  return $node;
+}
+
+function _activitystream_get_activity($user = NULL, $show_buddies = FALSE, $count = NULL) {
+  if ($count == NULL) {
+    $count = variable_get('default_nodes_main', 10);
+  }
+  // All this buddy list stuff doesn't really work yet
+  if (module_exists('buddylist') && $show_buddies) {
+    $buddies = db_query('SELECT bl.buddy as bid FROM {buddylist} bl WHERE bl.uid = %d', $user->uid);
+    // Since a number of items might be from the same buddy, load the users now and stuff them
+    // into an array for later. This avoids loading the same user multiple times.
+    while ($buddy = db_fetch_object($buddies)) {
+      $objbuddy = _activitystream_user_load($buddy->bid);
+    }
+    if (count($arrusers) == 0) {
+      // No buddies
+      return;
+    }
+
+    $query = 'SELECT n.title, n.nid, s.module, s.link, s.data, n.created FROM {activitystream} s, {node} n WHERE s.nid=n.nid AND n.status =1 AND n.uid in (' . join(',', array_keys($arrUsers)) . ') ORDER BY n.created DESC';
+    $countquery = 'SELECT count(*) FROM {activitystream} s, {node} n WHERE s.nid=n.nid AND n.status =1 AND n.uid in (' . join(',', array_keys($arrUsers)) . ')';
+  } 
+  elseif ($user) {
+    $query = "SELECT n.title, n.nid, s.module, s.link, s.data, n.created FROM {activitystream} s, {node} n WHERE s.nid=n.nid AND n.status =1 AND n.uid = " . $user->uid . " ORDER BY n.created DESC";  
+    $countquery = "SELECT count(*) FROM {activitystream} s, {node} n WHERE s.nid=n.nid AND n.status =1 AND n.uid = " . $user->uid;  
+  }
+  else {
+    $query = 'SELECT n.title, n.nid, s.module, s.link, s.data, n.created FROM {activitystream} s LEFT JOIN {node} n on s.nid=n.nid WHERE n.status = 1 ORDER BY n.created DESC';      
+    $countquery = 'SELECT count(*) FROM {activitystream} s, {node} n WHERE s.nid=n.nid AND n.status = 1';      
+  }
+  $datehead = '';
+  $items = array();
+  $stream = pager_query($query, $count, 0, $countquery);
+  while ($action = db_fetch_object($stream)) {
+    $items[] = $action;
+  }
+  return $items;
+}
+
+function activitystream_get_activity($user = NULL, $show_buddies = FALSE, $count = NULL) {
+  $items = _activitystream_get_activity($user, $show_buddies, $count);
+  $return = array();
+  foreach ($items as $action) {
+    if (date('Ymd', $action->created) != $datehead) {
+      $datehead = date('Ymd', $action->created);
+      $return[$datehead]['title'] = theme('activitystream_header', $action);
+    }
+    
+    if (function_exists('theme_' . $action->module . '_item')) {
+      $theme_function = $action->module . '_item';
+    } 
+    else {
+      $theme_function = 'activitystream_item';
+    }
+    
+    $return[$datehead]['items'][] = theme($theme_function, $action);
+  }
+  return $return;
+}
+
+function theme_activitystream_header($action) {
+  return '<h3 class="datehead">' . format_date($action->created, 'medium') . '</h3>';
+}
+
+function theme_activitystream_item($action) {
+  $action = $action['action'];
+  $node = node_load($action->nid);
+  $date = theme('activitystream_date', array('date' => $node->created));
+  $user = _activitystream_user_load($node->uid);
+  $name = theme('activitystream_username', array('user' => $user));
+  if (function_exists('theme_' . $action->module . '_icon')) {
+    $theme_function = $action->module . '_icon';
+  } 
+  else {
+    $theme_function = 'activitystream_icon';
+  }
+  return '<span class="activitystream-item">' . theme($theme_function, $activity) . " <span>$name " . l($node->title, 'node/' . $node->nid) . " <span class=\"activitystream-created\">$date</span></span>" . l('#', 'node/' . $node->nid, array('class' => 'permalink')) . "</span>\n";
+}
+
+
+function theme_activitystream($items) {
+  drupal_add_css(drupal_get_path('module', 'activitystream') . '/activitystream.css');
+  if (!count($items)) {
+    $ret = t('There are no activities to show.');
+  }
+  foreach ($items as $day) {
+    $ret .= "\n{$day['title']}\n";
+    $ret .= theme('item_list', $day);
+  }
+  return '<div id="activitystream">' . "\n" . $ret . "\n</div>";
+}
+
+function theme_activitystream_date($date) {
+  $date = format_date($date, 'custom', 'g:ia');
+  return $date;
+}
+
+function theme_activitystream_username($user) {
+  $arrnames = split(' ', $user->name);
+  if (user_access('access user profiles')) {
+    return l($arrnames[0], 'user/' . $user->uid);
+  }
+  else {
+    return $arrnames[0];
+  }
+}
+
+function theme_activitystream_view($activity) {
+  $activity = $activity['activity'];
+  $node = node_load($activity['nid']);
+  if (function_exists('theme_' . $activity['module'] . '_icon')) {
+    $theme_function = $activity['module'] . '_icon';
+  } 
+  else {
+    $theme_function = 'activitystream_icon';
+  }
+  $return = '<p class="activitystream-original">See original: ';
+  $return .= theme($theme_function, $activity) . '  ' . l($node->title, $activity['link']);
+  $return .= '</p>';
+  return $return;
+}
+
+function activitystream_cron() {
+  module_load_include('inc', 'node', 'node.pages');
+  $number_of_hours = variable_get('activitystream_cron_hours', 1);
+  $active_days = variable_get('activitystream_active_days', 30);
+  $result = db_query('SELECT a.uid, a.userid, a.password, a.feed, a.module FROM {activitystream_accounts} a LEFT JOIN {users} u on a.uid = u.uid  WHERE a.lastfetch < date_sub(now( ) , INTERVAL :hour HOUR) AND u.access > unix_timestamp(date_sub(now( ) , INTERVAL :days day)) ORDER BY a.lastfetch DESC, u.access DESC', array(':hour' => $number_of_hours, ':days' => $active_days));
+  $users = array();
+  while ($user = $result->fetchObject()) {
+    $users[] = $user;
+  }
+  $num_users = activitystream_update_streams($users);
+  if ($num_users) {
+    // Add an informative message in the watchdog
+    watchdog('activitystream', 'Processed %count users.', array('%count' => $num_users));
+  }  
+}
+
+/**
+ * Update the user streams.
+ *
+ * @param &$users
+ *   An array of objects containing the AS user information
+ *
+ * @param $use_queue (default TRUE)
+ *   Boolean value indicating if the job queue should be used if 
+ *   it is available
+ *
+ * @return
+ *   The number of users updated
+ */
+function activitystream_update_streams(&$users, $use_queue =  TRUE) {
+  $use_job_queue = module_exists('job_queue') ? TRUE : FALSE;
+  $processed_users = array();
+  foreach ($users as $user) {
+    if ($use_job_queue && $use_queue) {
+      job_queue_add('activitystream_invoke_streamapi', 'Activity Stream Update for ' . $uid, array($user), '', TRUE);
+    } 
+    else {
+      activitystream_invoke_streamapi($user);
+    }
+    // Update the last fetch time for this user and module.
+    db_query('UPDATE {activitystream_accounts} set lastfetch = now() where uid = :uid AND module = :module', array(':uid' => $user->uid, ':module' => $user->module));
+    $processed_users[$user->uid] = $user->userid;    
+  }
+  return count($processed_users);
+}
+
+/**
+ * Implementation of hook_job_queue_functions(). 
+ * Allow admins to modify the priority of this job.
+ */
+function activitystream_job_queue_functions() {
+  $functions['activitystream_cron'] = array(
+    'title' => t('Activity Stream Updates'),
+  );
+  return $functions;
+}
+function activitystream_user_load($users) {
+  foreach ($users as $key => $user) {
+    if (!isset($users[$key]->activity_accounts))
+    $users[$key]->activity_accounts = _activitystream_load_account_info($key);
+  }
+}
+
+function _activitystream_load_account_info($uid) {
+  $accounts = array();
+  //loop through all existing activitystream modules and grab the profileUrl if it exists
+  foreach (module_implements('streamapi') as $name) {
+    $account = _activitystream_load_accounts_with_module($uid, $name);
+    if ($account)  {
+      $module = $account->module;
+      $function = $module . '_activitystream_info';
+      if (function_exists($function)) {
+        $account->info = $function($account);
+      }
+      if ($module) { 
+        array_push($accounts, $account);
+      }    
+    }
+  }
+  return $accounts;
+}
+function _activitystream_load_accounts($uid) {
+  $query = db_query("SELECT userid, password, feed, module FROM {activitystream_accounts} WHERE uid = :uid", array(':uid' => $uid));
+  $activity = $query->fetchAll();
+  return $activity;
+}
+function _activitystream_load_accounts_with_module($uid, $module) {
+  $query = db_query('SELECT userid, password, feed, module FROM {activitystream_accounts} WHERE module = :module and uid = :uid', array(':module' => $module, ':uid'  => $uid));
+  $activity = $query->fetchObject();
+  return $activity;
+}
+/**
+ * Implementation of hook_settings()
+ */
+function activitystream_settings() {
+  $form['activitystream_title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Title'),
+    '#default_value' => variable_get('activitystream_title', 'Activity Stream'),
+    '#description' => t('The title of the Activiy Stream in blocks and User Profiles.'),
+  );
+  $form['activitystream_user_description'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Description for Users'),
+    '#default_value' => variable_get('activitystream_user_description', ACTIVITYSTREAM_DEFAULT_INTRO),
+    '#description' => t('The description that is shown to users on the page asking for their account information.'),
+  );
+  
+  if (module_exists('taxonomy')) {
+    drupal_add_js(drupal_get_path('module', 'activitystream') . '/activitystream_vocabulary.js');
+    
+    $vocabularies = taxonomy_get_vocabularies();
+    $vocabulary_options = array('-1' => 'None');
+    foreach ($vocabularies as $vocabulary) {
+      $vocabulary_options[$vocabulary->vid] = $vocabulary->name;
+    }
+    
+    $vocabulary_options['add'] = 'Add New...';
+    
+    $form['activitystream_vocabulary'] = array(
+      '#type' => 'select',
+      '#title' => t('Activity Stream Vocabulary'),
+      '#options' => $vocabulary_options,
+      '#default_value' => variable_get('activitystream_vocabulary', -1),
+      '#description' => t('If this is set, category information from incoming Activity Stream items will be saved in this Vocabulary.'),
+      '#attributes' => array('onchange' => 'activitystream_vocabulary_check_new(this)')
+    );
+  }
+  
+  $form['advanced'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Advanced settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#weight' => 9,
+  );
+ 
+  // The array needs to be a hash, but I'm too lazy to write it manually. 
+  $cron_hours = array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 , 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24);
+  $cron_hours = array_combine($cron_hours, $cron_hours);
+  
+  $form['advanced']['activitystream_cron_hours'] = array(
+    '#type' => 'select',
+    '#title' => t('Hours between updates'),
+    '#options' => $cron_hours,
+    '#default_value' => variable_get('activitystream_cron_hours', 1),
+    '#description' => t('Sites with large numbers of users (hundreds or more) that are all using Activity Stream can see a performance benefit by updating stream items less often. "0" means do not throttle updates and is not recommended for production sites.<br/>Sites with performance issues can also benefit from installing the <a href="http://drupal.org/project/job_queue">Job Queue module</a>.'),
+  );
+  
+  // The array needs to be a hash, but I'm too lazy to write it manually.
+  $active_days = array(1, 5, 7, 10, 30, 60, 180, 365);
+  $active_days = array_combine($active_days, $active_days);  
+  
+  $form['advanced']['activitystream_active_days'] = array(
+    '#type' => 'select',
+    '#title' => t('Days since last visit for a user to be considered active.'),
+    '#options' => $active_days,
+    '#default_value' => variable_get('activitystream_active_days', 30),
+    '#description' => t('To speed updates, only users that are active on the site are updated. This helps prevent updates for spammers or users that have abandoned the site. 30 days should be good for most sites'),
+  );
+
+  $form['buttons']['#weight'] = 10;
+  
+  foreach (module_implements('activitystream_admin') as $name) {
+    $function = $name . '_activitystream_admin';
+    $elements = $function();
+    foreach ($elements as $key => $value) {
+      $form[$key] = $value;
+    }
+  }
+  
+  return system_settings_form($form);
+}
+
+
+function activitystream_invoke_streamapi($user) {
+  $return = array();
+  if (module_hook($user->module, 'streamapi')) {
+    $items = array();
+    $function = $user->module . '_streamapi';
+    $items = $function($user);
+    if (is_array($items)) {
+      foreach ($items as $activity) {
+        if (!empty($activity['nid'])) {
+          // The plugin has already created a node, 
+          // just save the stream item 
+          $node = node_load($activity['nid']);
+          $return[] = activitystream_save_stream($node, $activity, $user->module);            
+        } 
+        else {
+          // Create a node and save the item
+          $return[] = activitystream_save_node($activity, $user, $user->module);              
+        }
+      }    
+    }
+  }
+  return $return;
+}
+
+/**
+ * Shortcut the user_load function if we already have loaded this user.
+ */
+function _activitystream_user_load($uid) {
+  static $arr_users;
+  if (!empty($arr_users)) {
+    $arr_users = array();
+  }
+  if (isset($arr_users) && isset($arr_users[$uid])) {
+    return $arr_users[$uid];
+  } 
+  else {
+    $user = user_load($uid);
+    $arr_users[$uid] = $user;
+    return $user;    
+  }
+}
+
+/**
+ * This is a wrapper function. In 2.x the behavior of the module changed
+ * to split saving the stream and saving the node to two functions. The old
+ * function is still here for backward compatibility
+ */
+function _activitystream_save($activity, $user, $name) {
+  return activitystream_save_node($activity, $user, $name);
+}
+
+function activitystream_save_node($activity, $user, $name) {
+  if (empty($activity['guid']) || !array_key_exists('guid', $activity)) {
+    $activity['guid'] = md5($name . $activity['link'] . $user->uid);
+  } 
+  else {
+    $activity['guid'] = md5($activity['guid'] . $user->uid);
+  }  
+  if (empty($activity['link'])) {
+    $activity['link'] = '';
+  }
+  if (empty($activity['data'])) {
+    $activity['data'] = '';
+  }
+  $query = db_query("SELECT nid, changed FROM {activitystream} WHERE guid = :guid", array(':guid' => $activity['guid']));
+  $node = $query->fetchObject();
+  if (isset($node->nid)) {
+    $changed = $node->changed;
+    $node = node_load($node->nid);
+    if ($changed != $node->changed) {
+      return $node->nid;
+    }
+    $new = FALSE;
+  } 
+  else {
+    $node = new stdClass();  
+    $new = TRUE;
+    $options = variable_get('node_options_activitystream', FALSE);
+    if (is_array($options)) {
+      $node->status = in_array('status', $options) ? 1 : 0;
+      $node->promote = in_array('promote', $options) ? 1 : 0;
+      $node->sticky = in_array('sticky', $options) ? 1 : 0;
+      $node->revision = in_array('revision', $options);
+    }
+    else {
+      $node->status = 1;
+    }
+  }
+  // Has the source changed? If not, we don't want to update the node
+  $source_changed = FALSE;
+  if (isset($node->title)) {
+      $source_changed = ((strpos($activity['title'], $node->title) !== FALSE) && $node->body == $activity['body']) ? FALSE : TRUE;
+  }
+  
+  if ($source_changed || $new) {
+    // Only save if if the source has changed or this is a new item
+    $node->title = $activity['title'];
+    if (is_array($activity['body'])) {
+      foreach ($activity['body'] as $body) {
+        if (!empty($body)) {
+          $bodies[] = array('value' => $body, 'format' => 'full_html');
+        }
+      }
+      $node->body = array(LANGUAGE_NONE => $bodies);
+    } 
+    else {
+      $node->body = array(LANGUAGE_NONE => array(array('value' => $activity['body'], 'format' => 'full_html')));
+    } 
+    $node->created = $activity['timestamp'];
+    $node->uid = $user->uid;
+    $node->type = 'activitystream';
+    if (empty($node->language)) {
+      // 'und' is the language-neutral code in Drupal 7.
+      $node->language = 'und';
+    }
+    if (module_exists('taxonomy')) {
+      $vid = variable_get('activitystream_vocabulary', -1);
+      if ($vid > 0 && $activity['categories']) {
+        $node->taxonomy['tags'] = array($vid => implode(',', $activity['categories']));  
+      }
+    }
+    if ($new) {
+      node_invoke($node, 'prepare');
+      module_invoke_all('node_prepare', $node, $activity);
+    }
+    node_save($node);
+    $nid = activitystream_save_stream($node, $activity, $name);
+    if (!$nid) {
+      watchdog('activitystream', 'Could not create stream item ' . $node->title, WATCHDOG_ERROR);
+      
+      // TODO we should probably delete the node here if the save_stream failed
+    }
+  }
+  return $node->nid;
+}
+
+function activitystream_save_stream(&$node, &$activity, $name) {
+  $query = db_query("SELECT nid, changed FROM {activitystream} WHERE guid = :guid", array(':guid' => $activity['guid']));
+  $n = $query->fetchObject();
+   if (isset($n->nid)) {
+    // This is an existing item. Update.
+    $actions = db_query('UPDATE {activitystream} SET changed = :changed', array(':changed' => $node->changed));    
+    if (!$actions) {
+      watchdog('activitystream', 'Cannot update stream item. Check the Drupal log for database errors.');
+      return NULL;            
+    }
+    watchdog('activitystream', 'Updated %title from %name', array('%title' => $node->title, '%name' => $name));    
+    return $node->nid;    
+  } 
+  else {
+    $actions = db_query('INSERT into {activitystream} (nid, module, guid, link, data, changed) VALUES (:nid, :module, :guid, :link, :data, :changed)', array(':nid' => $node->nid, ':module' => $name, ':guid' => $activity['guid'], ':link' => $activity['link'], ':data' => $activity['data'], ':changed' => $node->changed));
+    if (!$actions) {
+      watchdog('activitystream', 'Cannot save stream item. Check the Drupal log for database errors.');
+      return NULL;            
+    }
+    watchdog('activitystream', 'Added %title from %name', array('%title' => $node->title, '%name' => $name));    
+    return $node->nid;    
+  }
+}
+
+function activitystream_theme() {
+  return array(
+    'activitystream_item' => array(
+      'variables' => array('action' => NULL),
+    ),
+    'activitystream' => array(
+      'variables' => array('items' => NULL),
+    ),
+    'activitystream_header' => array(
+      'variables' => array('action' => NULL),
+    ),
+    'activitystream_date' => array(
+      'variables' => array('date' => NULL),
+    ),
+    'activitystream_username' => array(
+      'variables' => array('user' => NULL),
+    ),
+    'activitystream_view' => array(
+      'variables' => array('activity' => NULL),
+    ),
+  );
+}
+
+function activitystream_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'activitystream') . '/views',
+  );
+}
+
+
+/**
+ * Implementation of hook_block().
+ */
+
+function activitystream_block($op = 'list', $delta = 0) {
+  if ($op == 'list') {
+    $blocks[0]['info'] = variable_get('activitystream_title', 'Activity Stream');
+    $blocks[1]['info'] = t('User\'s activity stream');
+    return $blocks;
+  }
+  elseif ($op == 'view') {
+    $block = array();
+    switch ($delta) {
+      case 0:
+        $title = variable_get('activitystream_title', 'Activity Stream');
+        $block['subject'] = $title;
+        $block['content'] = block_activitystream_content(0);
+        break;
+
+      case 1:
+        // basic validation
+        $arg = arg();
+        if (count($arg) == 2 && $arg[0] == 'user' && is_numeric($arg[1]) && ($user = _activitystream_user_load($arg[1]))) {
+          $block['subject'] = t('My activity');
+          $block['content'] = block_activitystream_content(1, $user);
+        }
+        break;
+      
+    }
+    return $block;
+  }
+}
+
+/**
+ * A block content function.
+ */
+ 
+function block_activitystream_content($which_block) {
+  switch ($which_block) {
+    case 0:
+      $items = activitystream_get_activity();
+      return theme('activitystream', $items);
+    case 1:
+      $args = func_get_args();
+      $items = activitystream_get_activity($args[1]);
+      return theme('activitystream', $items);
+  }
+}

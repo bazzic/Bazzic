@@ -1,0 +1,7 @@
+
+name = Twitter
+description = Public Twitter tweets
+dependencies[] = activitystream 
+dependencies[] = activitystream_feed
+package = Activity Stream
+core = 7.x

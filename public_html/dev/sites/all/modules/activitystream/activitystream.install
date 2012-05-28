@@ -1,0 +1,65 @@
+<?php
+
+/**
+ * @file
+ * Installs the tables for activitystream.
+ */
+
+/**
+ * Implementation of hook_install()
+ *
+ * This will automatically install the database tables for the Activity Stream
+ * module for MySQL.
+ *
+ * If you are using another database, you will have to install the
+ * tables by hand, using the queries below as a reference.
+ *
+ * Note that the curly braces around table names are a drupal-specific
+ * feature to allow for automatic database table prefixing, and will
+ * need to be removed.
+ */
+
+function activitystream_install() {
+  db_query("UPDATE {system} SET weight = 100 WHERE name  = 'activitystream'");
+  node_types_rebuild();
+  $types = node_type_get_types();
+  node_add_body_field($types['activitystream']);
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function activitystream_schema() {
+  $schema = array();
+  $schema['activitystream'] = array(
+    'fields' => array(
+       'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+       'module' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+       'guid' => array('type' => 'varchar', 'length' => '32', 'not null' => TRUE),
+       'link' => array('type' => 'text'),
+       'data' => array('type' => 'text'),
+       'changed' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10')
+       ),
+    'primary key' => array('guid'),
+  );
+
+  $schema['activitystream_accounts'] = array(
+    'fields' => array(
+       'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'),
+       'module' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+       'userid' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+       'password' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+       'feed' => array('type' => 'varchar', 'length' => '255', 'not null' => FALSE),
+       'lastfetch' => array('mysql_type' => 'datetime', 'not null' => TRUE)), //NOTE, see documentation here for why this becomes mysql_type: http://drupal.org/update/modules/6/7#db_specific_types
+       );
+
+  return $schema;
+}
+
+
+function activitystream_update_7001(&$sandbox) {
+  db_drop_primary_key('activitystream');
+  db_change_field('activitystream', 'link', 'link',
+  array('type' => 'text'),
+  array('primary key' => array('guid')));
+}

@@ -1,0 +1,7 @@
+
+name = Digg
+description = What's been Dugg
+dependencies[] = activitystream 
+dependencies[] = activitystream_feed
+package = Activity Stream
+core = 7.x

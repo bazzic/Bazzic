@@ -1,0 +1,7 @@
+
+name = Flickr Stream
+description = Your activity on Flickr
+dependencies[] = activitystream 
+package = Activity Stream
+files[] = phpFlickr.php
+core = 7.x
