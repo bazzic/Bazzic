@@ -124,9 +124,9 @@ function activitystream_twitter_makelinks($text) {
   $text = eregi_replace('([[:space:]()[{}])(www.[-a-zA-Z0-9@:%_\+.~#?&//=]+)', '\\1<a href="http://\\2">\\2</a>', $text);
   // @ tags for users
   $text = preg_replace('/@(\w*)/', '<a href="http://twitter.com/\\1">@\\1</a>', $text);
-//print $text;exit;
+
   // hashtags to search.twitter
-  $text = preg_replace('/\b#(\w*)\b/', '<a href="http://search.twitter.com/search?q=%23\\1">#\\1</a>', $text);
+  $text = preg_replace('/#(\w*)/', '<a href="http://search.twitter.com/search?q=%23\\1">#\\1</a>', $text);
   // $text = preg_replace("/<a href=\"http:\/\/twitpic\.com\/(.*)\">http:\/\/twitpic\.com\/(.*)<\/a>/i", 
   //                     "<a href=\"http://twitpic.com/$1\"><img src=\"http://twitpic.com/show/mini/$1.jpg\" /></a>", $text);
   return array($text, $pics);
