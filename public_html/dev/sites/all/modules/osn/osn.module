@@ -21,6 +21,11 @@ function osn_form_alter(&$form, $form_state, $form_id) {
     unset($form['options']['sticky']);
   }
   
+  // We need to allow Org Admins the ability to publish organisations.  Everyone else can't.
+  if ($form_id == 'organisation_node_form' && !is_org_admin($user->uid) && $user->uid != 1 && $user->name != 'sitemanager') {
+    unset($form['options']['status']);
+  }
+  
   if ($form_id == 'views_exposed_form') {
   	$form['group']['#size'] = 9;
   	$form['field_event_date_value']['value']['#date_format'] = 'd-m-Y';
