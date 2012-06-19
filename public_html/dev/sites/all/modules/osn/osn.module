@@ -33,7 +33,9 @@ function osn_form_alter(&$form, $form_state, $form_id) {
   
   if ($form_id == 'event_node_form') {
     // We don't want users to see the Other Groups when they create an event.
-    unset($form['group_audience']['und']['#options']['Other groups']);
+    if ($user->uid != 1 && $user->name != 'sitemanager') {
+      unset($form['group_audience']['und']['#options']['Other groups']);
+    }
   	$form['field_location_tid']['und']['#size'] = 9;
     // Don't even ask why this fixes the Safari bug that won't show the background color on submit buttons.
   	print '&nbsp';
