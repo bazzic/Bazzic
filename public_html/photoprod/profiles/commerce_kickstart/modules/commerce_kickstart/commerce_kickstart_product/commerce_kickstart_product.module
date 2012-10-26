@@ -1,0 +1,37 @@
+<?php
+/**
+ * @file
+ * Provides Kickstart demo store specific product types and related
+ * functionality.
+ */
+
+include_once 'commerce_kickstart_product.features.inc';
+
+/**
+ * Implements hook_migrate_api().
+ */
+function commerce_kickstart_product_migrate_api() {
+  return array(
+    'api' => 2,
+  );
+}
+
+/**
+ * Implements hoook_commerce_kickstart_crumb_info().
+ *
+ * Enables the Crumbs plugin relevant to this module that provides taxonomy
+ * based breadcrumbs for each product display node.
+ */
+function commerce_kickstart_product_commerce_kickstart_crumb_info() {
+  return array(
+    'taxonomy.termReference.field_collection.node.*',
+  );
+}
+
+/**
+ * Implements hook_commerce_product_type_info_alter().
+ */
+function commerce_product_commerce_product_type_info_alter(&$product_types) {
+  // Remove the default product type.
+  unset($product_types['product']);
+}

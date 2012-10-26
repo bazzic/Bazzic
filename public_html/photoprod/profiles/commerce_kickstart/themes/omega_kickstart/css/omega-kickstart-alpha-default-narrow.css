@@ -1,0 +1,68 @@
+/* This file will hold styles that are loaded using the same media query as the narrow grid. */
+/* If you are using the default media queries provided by Omega, these styles will also
+ *  apply to the normal and widescreen layouts. You may override these styles in the normal
+ *  and widescreen CSS files as appropriate. */
+/**************************************************
+* --
+* 3. Section content
+* --
+**************************************************/
+/**********************************************
+* 3.2. Zone content
+**********************************************/
+/*******************************************
+* 3.2.1. Sidebar first
+*******************************************/
+/* Price range */
+#search-api-ranges-block-slider-view-form label {
+  float: none; }
+
+/*******************************************
+* 3.2.2. Content
+*******************************************/
+#promotional_banner .promotional_banner_special_offer {
+  float: right;
+  line-height: 22px;
+  margin-top: 4px; }
+
+#block-views-demo-content-slideshow-block-1 {
+  /* HP blocks: Slideshow */ }
+  #block-views-demo-content-slideshow-block-1 .bx-wrapper,
+  #block-views-demo-content-slideshow-block-1 .bx-wrapper .bx-window {
+    padding-bottom: 0; }
+  #block-views-demo-content-slideshow-block-1 .bx-wrapper ul.event-slider {
+    /*li {
+      min-height: 168px;
+      height: 357px;
+      max-height: 480px;
+      margin: 0;
+      min-width: 330px;
+      width: 700px;
+      max-width: 940px;
+    }*/ }
+    #block-views-demo-content-slideshow-block-1 .bx-wrapper ul.event-slider li {
+      height: 357px;
+      width: 700px; }
+
+/**************************************************
+* --
+* 5. Commerce specific
+* --
+**************************************************/
+/**********************************************
+* 5.1. Search & Collection page
+**********************************************/
+.view-collection-taxonomy-term .view-header .collection-terms .view-content .item-list {
+  display: block;
+  float: none; }
+
+/**********************************************
+* 5.3. Product page
+**********************************************/
+.node-product-type .commerce-product-field .cloud-zoom-container #wrap {
+  float: right; }
+.node-product-type .commerce-product-field .cloud-zoom-container .cloud-zoom-gallery-thumbs {
+  /*float: left;*/
+  clear: none; }
+  .node-product-type .commerce-product-field .cloud-zoom-container .cloud-zoom-gallery-thumbs .cloud-zoom-gallery {
+    margin: 5px; }

@@ -1,0 +1,14 @@
+name = Commerce Kickstart Reset
+core = 7.x
+package = Commerce Kickstart
+dependencies[] = entity
+
+; Tests
+files[] = test/commerce_kickstart_reset.test
+
+; Information added by drupal.org packaging script on 2012-09-17
+version = "7.x-2.0-rc1"
+core = "7.x"
+project = "commerce_kickstart"
+datestamp = "1347893544"
+

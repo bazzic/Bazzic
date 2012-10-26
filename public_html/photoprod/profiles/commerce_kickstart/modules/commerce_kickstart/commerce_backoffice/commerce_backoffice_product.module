@@ -1,0 +1,234 @@
+<?php
+
+/**
+ * Implements hook_views_api().
+ */
+function commerce_backoffice_product_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'commerce_backoffice_product') . '/includes/views',
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function commerce_backoffice_product_menu() {
+  // Megarow callbacks.
+  $items['commerce_backoffice/variations/%node'] = array(
+    'page callback' => 'commerce_backoffice_product_variations_view',
+    'page arguments' => array(2),
+    'delivery callback' => 'ajax_deliver',
+    'access arguments' => array('administer commerce_product entities'),
+  );
+
+  // The overriden node/add type listing.
+  $base = array(
+    'page callback' => 'node_add_page',
+    'access callback' => '_node_add_access',
+    'file' => 'node.pages.inc',
+    'file path' => drupal_get_path('module', 'node'),
+  );
+  $items['node/add/add-content'] = array(
+    'title' => 'Add content',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  ) + $base;
+  $items['node/add/add-product'] = array(
+    'title' => 'Add product',
+    'type' => MENU_LOCAL_TASK,
+  ) + $base;
+
+  return $items;
+}
+
+/*
+ * Implements hook_menu_local_tasks_alter().
+ */
+function commerce_backoffice_product_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  // Replace add-product action link with add-content.
+  if ($root_path == 'admin/commerce/products') {
+    $link = menu_get_item('node/add');
+    $link['title'] = t('Add product');
+    $link['href'] = 'node/add/add-product';
+    foreach ($data['actions']['output'] as $key => $output) {
+      if ($output['#link']['href'] == 'admin/commerce/products/add') {
+        $data['actions']['output'][$key] = array(
+          '#theme' => 'menu_local_action',
+          '#link' => $link,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function commerce_backoffice_product_theme_registry_alter(&$theme_registry) {
+  $theme_registry['node_add_list']['function'] = 'theme_commerce_backoffice_product_node_add_list';
+}
+
+/**
+ * Override node_add_list theme.
+ *
+ * Based on the url, filters the list of node types to only include
+ * product node types, or non-product display types.
+ */
+function theme_commerce_backoffice_product_node_add_list($variables) {
+  $item = menu_get_item();
+
+  $product_display_types = commerce_product_reference_node_types();
+  $product_display_types = array_keys($product_display_types);
+  $content = &$variables['content'];
+
+  foreach ($content as $key => $value) {
+    $node_type = unserialize($value['page_arguments']);
+    $node_type = $node_type[0];
+    $show_product = $item['path'] == 'node/add/add-product';
+    if (!in_array($node_type, $product_display_types) && $show_product) {
+      unset($content[$key]);
+    }
+    elseif (in_array($node_type, $product_display_types) && !$show_product) {
+      unset($content[$key]);
+    }
+  }
+
+  return theme_node_add_list($variables);
+}
+
+/**
+ * Implements hook_form_views_form_alter().
+ */
+function commerce_backoffice_product_form_alter(&$form, &$form_state, $form_id) {
+  if (isset($form['#node_edit_form'])) {
+    $product_node_types = commerce_product_reference_node_types();
+    if (in_array($form['#node']->type, array_keys($product_node_types))) {
+      // Enable the #fieldset key.
+      $form['#pre_render'][] = 'commerce_backoffice_pre_render_add_fieldset_markup';
+      // Add a new vertical tab.
+      $form['product_catalog'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Product catalog'),
+        '#group' => 'additional_settings',
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+        '#weight' => -10,
+      );
+
+      // Assign all taxonomy reference fields to the new vertical tab.
+      foreach (field_info_instances('node', $form['#node']->type) as $field_name => $instance) {
+        $field = field_info_field($field_name);
+
+        if ($field['type'] == 'taxonomy_term_reference') {
+          $form[$field_name]['#fieldset'] = 'product_catalog';
+        }
+      }
+    }
+  }
+  // Alter the Exposed Filters for products page
+  if (isset($form['submit']['#id']) && $form['submit']['#id'] == 'edit-submit-commerce-backoffice-products') {
+    $form['product_display_node_type']['#attributes'] = array('data-placeholder' => array(t('All product types')));
+    $form['term_node_tid_multiple_vocabularies']['#attributes'] = array('data-placeholder' => array(t('All categories')));
+    $form['status']['#options']['All'] = t('All statuses');
+    $form['combine']['#attributes'] = array('placeholder' => array(t('Search by title or SKU')));
+  }
+}
+
+/**
+ * Implement hook_views_pre_render().
+ */
+function commerce_backoffice_product_views_pre_render(&$view) {
+  if ($view->name == 'commerce_backoffice_products') {
+    drupal_add_css(drupal_get_path('module', 'commerce_backoffice_product') . '/theme/commerce-backoffice-products.css');
+  }
+}
+
+/**
+ * Displays a view of products referenced from the given node, in a megarow.
+ */
+function commerce_backoffice_product_variations_view($node) {
+  $title = t('Variations for product %title', array('%title' => $node->title));
+  $output = views_embed_view('commerce_backoffice_product_variations', 'default', $node->nid);
+
+  return views_megarow_display($title, $output, $node->nid);
+}
+
+/**
+ * Form callback: Returns the form for modifying the product price and status.
+ */
+function commerce_backoffice_product_quick_edit_form($form, &$form_state, $product) {
+  $form_state['product'] = $product;
+
+  $price_array = $product->commerce_price[LANGUAGE_NONE][0];
+  $price = commerce_currency_amount_to_decimal($price_array['amount'], $price_array['currency_code']);
+
+  $wrapper = drupal_html_id('commerce-backoffice-product-quick-edit-form');
+  $form['#prefix'] = '<div class="container-inline" id="' . $wrapper . '">';
+  $form['#suffix'] = '</div>';
+
+  $form['price'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Price'),
+    '#title_display' => 'invisible',
+    '#default_value' => sprintf("%.2f", $price),
+    '#size' => 5,
+  );
+  $form['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#title_display' => 'invisible',
+    '#options' => array(0 => t('Disabled'), 1 => t('Enabled')),
+    '#default_value' => $product->status,
+  );
+  $form['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+    '#ajax' => array(
+      'callback' => 'commerce_backoffice_product_quick_edit_form_ajax',
+      'wrapper' => $wrapper,
+    ),
+  );
+  if (!empty($form_state['product_saved'])) {
+    $form['save']['#suffix'] = t('Saved');
+  }
+
+  return $form;
+}
+
+/**
+ * Ajax callback for commerce_backoffice_product_quick_edit_form.
+ */
+function commerce_backoffice_product_quick_edit_form_ajax($form, &$form_state) {
+  return $form;
+}
+
+/**
+ * Submit callback for commerce_backoffice_product_quick_edit_form.
+ */
+function commerce_backoffice_product_quick_edit_form_submit($form, &$form_state) {
+  $product = $form_state['product'];
+  $currency_code = $product->commerce_price[LANGUAGE_NONE][0]['currency_code'];
+  $product->commerce_price[LANGUAGE_NONE][0]['amount'] = commerce_currency_decimal_to_amount($form_state['values']['price'], $currency_code);
+  $product->status = $form_state['values']['status'];
+  commerce_product_save($product);
+
+  $form_state['rebuild'] = TRUE;
+  $form_state['product_saved'] = TRUE;
+}
+/**
+ * Get the Product Displays Vocabularies.
+ */
+function _commerce_backoffice_product_display_vocabularies() {
+  $fields = field_info_fields();
+  $product_displays = commerce_product_reference_node_types();
+  $voc_names = array();
+  foreach ($fields as $field) {
+    if ($field['type'] == 'taxonomy_term_reference' && isset($field['bundles']['node']) && array_intersect($field['bundles']['node'], array_keys($product_displays))) {
+      $voc_names[$field['settings']['allowed_values'][0]['vocabulary']] = $field['settings']['allowed_values'][0]['vocabulary'];
+    }
+  }
+  if (!empty($voc_names)) {
+    return _views_taxonomy_get_vocabularies_by_names($voc_names);
+  }
+  return array();
+}

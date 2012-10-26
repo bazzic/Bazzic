@@ -1,0 +1,13 @@
+name = Shipping Method Example
+description = Provides an example shipping method for testing and development.
+package = Commerce (shipping)
+dependencies[] = commerce
+dependencies[] = commerce_shipping
+core = 7.x
+
+; Information added by drupal.org packaging script on 2012-09-02
+version = "7.x-2.0-beta1+19-dev"
+core = "7.x"
+project = "commerce_shipping"
+datestamp = "1346544977"
+

@@ -1,0 +1,309 @@
+<?php
+
+/**
+ * @file
+ * Implements Payleap payment services for use in Drupal Commerce.
+ */
+
+/**
+ * Checks whether the given order should be recurring.
+ *
+ * In this case the order need to contain exactly one product of type sp with
+ * recurring set to true. If we would mix up orders with multiple products, we
+ * would get difficulties with which amount to regularly charge customers.
+ *
+ * @param $order
+ *   The commerce order to check.
+ *
+ * @return
+ *   TRUE if the order contains exactly one recurring sp, else FALSE.
+ */
+function commerce_sp_payleap_order_contains_recurrent_product($order) {
+  $is_recurrent = FALSE;
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  foreach ($order_wrapper->commerce_line_items as $delta => $line_item_wrapper) {
+    if ($delta > 0) {
+      return FALSE;
+    }
+    $product_wrapper = $line_item_wrapper->commerce_product;
+    if (!commerce_sp_payleap_is_recurrent_product($product_wrapper->value())) {
+      // Return if there is a different product.
+      return FALSE;
+    }
+    else {
+      // There is at least one recurrent product.
+      $is_recurrent = TRUE;
+    }
+  }
+  return $is_recurrent;
+}
+
+/**
+ * Checks whether the commerce product is a recurrent subscription product.
+ *
+ *
+ * @param $product
+ *   The commerce product to check.
+ *
+ * @return
+ *   TRUE if recurrent sp, else FALSE.
+ */
+function commerce_sp_payleap_is_recurrent_product($product) {
+  if ($product->type == 'commerce_sp_subscription') {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+
+/**
+ *  Callback from direct payment - Form submission - Recurring.
+ */
+function commerce_sp_payleap_recurring_transaction($payment_method, $pane_form, $pane_values, $order, $charge) {
+  $user = user_load($order->uid);
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
+
+  $payment_method['settings']['txn_payleap_type'] = PAYLEAP_TXN_TYPE_ADDRECURRINGCREDITCARD;
+  $payment_method['settings']['txn_type'] = PAYLEAP_TXN_TYPE_ADDRECURRINGCREDITCARD;
+  $bill_amount = commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']);
+  $billing_data = commerce_payleap_get_billing_info($order);
+  $tax = 0;
+
+  $name = explode(' ', $address['name_line']);
+  // Regular transaction, gather CC info from form.
+  $info = array(
+    'ContractID' => $order->order_number,
+    'ContractName' => 'Subscription',
+    'CustomerID' => $user->uid,
+    'CustomerName' => $user->name,
+    'FirstName' => !empty($name[0]) ? $name[0] : '',
+    'LastName' => !empty($name[1]) ? $name[1] : '',
+    'StartDate' => date('m/d/Y' ,$order->created),
+    'BillAmt' => $bill_amount,
+    'TotalAmt' => $bill_amount + $tax,
+    // Transaction Optional details.
+    'TaxAmt' => number_format($tax),
+    'EndDate' => '',
+    // Customer optional details.
+    'Title' => '',
+    'Email' => '',
+    'Mobile' => '',
+    'Department' => '',
+    'Street1' => $address['thoroughfare'],
+    'Street2' => $address['premise'],
+    'Street3' => $address['sub_premise'],
+    'City' => $address['locality'],
+    'StateID' => $address['administrative_area'],
+    'Province' => $address['sub_administrative_area'],
+    'Zip' => $address['postal_code'],
+    'CountryID' => $address['country'],
+    'EmailCustomer' => '',
+    'EmailMerchant' => '',
+    'EmailCustomerFailure' => '',
+    'EmailMerchantFailure' => '',
+    'FailureInterval' => $payment_method['settings']['failure_interval'],
+    'MaxFailures' => $payment_method['settings']['max_failures'],
+    'CcAccountNum' => $pane_values['credit_card']['number'],
+    'CcExpdate' => $pane_values['credit_card']['exp_month'] . substr($pane_values['credit_card']['exp_year'], 2, 2),
+    'CcNameOnCard' => $billing_data['name_on_card'],
+    'CcStreet' => $billing_data['street'],
+    'CcZip' => $billing_data['zip'],
+    'ExtData' => '',
+  );
+
+  foreach ($order_wrapper->commerce_line_items as $delta => $line_item_wrapper) {
+    // Only one subscription per order.
+    if ($line_item_wrapper->type->value() == 'product') {
+      $product_wrapper = $line_item_wrapper->commerce_product;
+      if (!empty($product_wrapper->field_commerce_sp_time)) {
+        // Product is a subscription.
+        $info += commerce_sp_payleap_product_get_billing_date($product_wrapper);
+      }
+    }
+  }
+  if ($tax) {
+    $info['TaxAmt'] = $tax;
+  }
+
+  // Submit the request to Payleap.
+  $response = commerce_payleap_request($payment_method, $info);
+
+  // Prepare a transaction object to log the API response.
+  $transaction = commerce_payment_transaction_new($payment_method['settings']['txn_payleap_type'], $order->order_id);
+  $transaction->instance_id = $payment_method['instance_id'];
+  $transaction->remote_id = isset($response['xml']->ContractKey) ? (string) $response['xml']->ContractKey : '';
+  $transaction->amount = $charge['amount'];
+  $transaction->currency_code = $charge['currency_code'];
+  // Store the Message of transaction in the remote status.
+  $transaction->remote_status = $response['status'];
+  $transaction->message = implode('<br />', commerce_sp_payleap_get_log_message($response, $payment_method['settings']['txn_payleap_type']));
+  // Set the transaction status based on the type of transaction this was.
+  $transaction->status = $payment_method['settings']['txn_type'] == COMMERCE_CREDIT_AUTH_ONLY ? COMMERCE_PAYMENT_STATUS_PENDING : COMMERCE_PAYMENT_STATUS_SUCCESS;
+  // If we didn't get an approval response code.
+  // Create a failed transaction with the error message.
+  // Save auth code.
+  $transaction->data['auth_code'][] = isset($response['xml']) && isset($response['xml']->AuthCode) ? (string) $response['xml']->AuthCode : '';
+  $transaction->data['customer_key'] = isset($response['xml']) && isset($response['xml']->CustomerKey) ? (string) $response['xml']->CustomerKey : '';
+  $transaction->data['contract_key'] = isset($response['xml']) && isset($response['xml']->ContractKey) ? (string) $response['xml']->ContractKey : '';
+  // Save the transaction information.
+  commerce_payment_transaction_save($transaction);
+
+  // If the payment failed, display an error and rebuild the form.
+  if (!$response['status']) {
+    drupal_set_message(t('We received the following error processing your card. Please enter you information again or try a different card.'), 'error');
+    if (!empty($response['msg'])) {
+      drupal_set_message(check_plain($response['msg']), 'error');
+    }
+    return FALSE;
+  }
+}
+
+/**
+ * Helper function to retrieve the correct parameters for BillingPeriod and
+ * BillingInterval for an order.
+ *
+ * @param $product_wrapper
+ *   The product wrapper.
+ *
+ * @return
+ *   Array with the correct parameters.
+ */
+function commerce_sp_payleap_product_get_billing_date($product_wrapper) {
+  $period = $product_wrapper->field_commerce_sp_time->period->value();
+  $interval = $product_wrapper->field_commerce_sp_time->interval->value();
+  // Default - every year.
+  $return = array(
+    'BillingInterval' => 0,
+  );
+
+  switch ($period) {
+    case 'week':
+      // Use the current day as the day to charge during the week.
+      $return['BillingPeriod'] = 'Week';
+      $return['BillingInterval'] = date('N');
+      break;
+    case 'month':
+      // Use the current day as the day to charge during the month.
+      $day_of_month = date('j');
+      // Use last day of month if the date is after the 28th (to avoid lost months).
+      $return['BillingInterval'] = $day_of_month > 28 ? 'Last' : $day_of_month;
+      $return['BillingPeriod'] = 'Month';
+      break;
+    case 'day':
+      $return['BillingPeriod'] = 'Daily';
+    case 'year':
+      $return['BillingPeriod'] = 'Annually';
+      break;
+  }
+  return $return;
+}
+
+/**
+ * Build log message.
+ */
+function commerce_sp_payleap_get_log_message($response, $type) {
+  // Build a meaningful response message.
+  $message = array();
+  $text = (!$response['status']) ? t('REJECTED') : t('ACCEPTED');
+  $message[] = '<b>' . $type . ' : ' . $text . ':</b> ' . check_plain($response['msg']);
+
+  if (!empty($response['xml']->FirstTransactionPNRef)) {
+    // First transaction on that contract.
+    $message[] = '<b>' . t('Customer Key: ') . '</b>' . $response['xml']->CustomerKey;
+    $message[] = '<b>' . t('Contract Key: ') . '</b>' . $response['xml']->ContractKey;
+    $message[] = '<b>' . t('First Transaction PNRef: ') . '</b>' . $response['xml']->FirstTransactionPNRef;
+    $message[] = '<b>' . t('First Transaction Result: ') . '</b>' . $response['xml']->FirstTransactionResult;
+  }
+
+  return $message;
+}
+
+/**
+ * Request recurring billing status.
+ *
+ * FIXME: Currently a placeholder that always returns True.
+ *
+ * @return
+ *   String that describes the current status.
+ *     - 'Ok'
+ *     - 'Pending'
+ *     - 'Fail'
+ */
+function commerce_sp_payleap_check_payment_status() {
+  return 'Ok';
+}
+
+
+/**
+ * Cancel a recurring contract.
+ *
+ * Send a ManageContract request to Payleap to cancel a contract.
+ *
+ * @param $transaction
+ *   Contract to cancel's transaction.
+ *
+ * @return
+ *   The request's response.
+ */
+function commerce_sp_payleap_cancel_contract($payment_method, $transaction_id) {
+  $transaction = commerce_payment_transaction_load($transaction_id);
+
+  $payment_method['settings']['txn_payleap_type'] = PAYLEAP_TXN_TYPE_MANAGECONTRACT;
+  $payment_method['settings']['txn_mode'] = $payment_method['settings']['txn_mode'];
+
+  if (empty($transaction->data['customer_key']) || $transaction->data['contract_key']) {
+    // Not a subscription transaction - nothing to cancel.
+    return FALSE;
+  }
+
+  $info = array(
+    'TransType' => 'Delete',
+    'CustomerKey' => $transaction->data['customer_key'],
+    'ContractKey' => $transaction->data['contract_key'],
+    // We have to pass these empty parameters for the request to work.
+    'PaymentInfoKey' => '',
+    'PaymentType' => '',
+    'CustomerID' => '',
+    'FirstName' =>  '',
+    'LastName' =>  '',
+    'Title' => '',
+    'Department' => '',
+    'Street1' => '',
+    'Street2' => '',
+    'Street3' => '',
+    'City' => '',
+    'StateID' => '',
+    'Province' => '',
+    'Zip' => '',
+    'CountryID' => '',
+    'Email' => '',
+    'DayPhone' => '',
+    'NightPhone' => '',
+    'Fax' => '',
+    'Mobile' => '',
+    'ContractID' => '',
+    'ContractName' => '',
+    'BillAmt' => '',
+    'TaxAmt' => '',
+    'TotalAmt' => '',
+    'StartDate' => '',
+    'EndDate' => '',
+    'NextBillDt' => '',
+    'BillingPeriod' => '',
+    'BillingInterval' => '',
+    'MaxFailures' => '',
+    'FailureInterval' => '',
+    'EmailCustomer' => '',
+    'EmailMerchant' => '',
+    'EmailCustomerFailure' => '',
+    'EmailMerchantFailure' => '',
+    'Status' => '',
+    'ExtData' => '',
+  );
+
+  // Submit the request to Payleap.
+  $response = commerce_payleap_request($payment_method, $info);
+
+  return $response;
+}

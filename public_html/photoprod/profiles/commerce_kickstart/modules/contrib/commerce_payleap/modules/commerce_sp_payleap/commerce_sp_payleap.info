@@ -1,0 +1,19 @@
+name = Commerce Payleap Recurring
+description = Implements Payleap recurring payment services for use with Drupal Commerce.
+package = Commerce (contrib)
+dependencies[] = commerce_payleap
+dependencies[] = commerce_sp
+core = 7.x
+
+; Base module files
+files[] = commerce_sp_payleap.module
+
+; Simple tests
+files[] = tests/commerce_sp_payleap.test
+
+; Information added by drupal.org packaging script on 2012-09-13
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "commerce_payleap"
+datestamp = "1347538386"
+

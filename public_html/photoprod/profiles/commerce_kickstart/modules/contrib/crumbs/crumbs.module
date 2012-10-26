@@ -1,0 +1,437 @@
+<?php
+
+
+/**
+ * Implements hook_permission()
+ */
+function crumbs_permission() {
+  return array(
+    'administer crumbs' => array(
+      'title' => t('Administer Crumbs'),
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_menu()
+ */
+function crumbs_menu() {
+  $items = array();
+  $items['admin/structure/crumbs'] = array(
+    'title' => 'Crumbs',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('crumbs_admin_form'),
+    'access arguments' => array('administer crumbs'),
+    'file' => 'admin/crumbs.admin.inc',
+  );
+  $items['admin/structure/crumbs/settings'] = array(
+    'title' => 'Settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+  );
+  $items['admin/structure/crumbs/node-parent'] = array(
+    'title' => 'Node parent',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('crumbs_admin_node_parent_form'),
+    'access arguments' => array('administer crumbs'),
+    'file' => 'admin/crumbs.node_parent.inc',
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/structure/crumbs/debug'] = array(
+    'title' => 'Debug',
+    'page callback' => 'crumbs_debug_page',
+    'access arguments' => array('administer crumbs'),
+    'file' => 'admin/crumbs.debug.inc',
+    'weight' => 2,
+    'type' => MENU_LOCAL_TASK,
+  );
+  return $items;
+}
+
+
+/**
+ * Implements hook_theme()
+ */
+function crumbs_theme() {
+  return array(
+    'crumbs_breadcrumb_link' => array(
+      'item' => NULL,
+    ),
+    'crumbs_breadcrumb_current_page' => array(
+      'item' => NULL,
+    ),
+  );
+}
+
+
+/**
+ * Default theme implementation for theme('crumbs_breadcrumb_link').
+ */
+function theme_crumbs_breadcrumb_link(array $item) {
+  return l($item['link_title'], $item['link_path'], $item['link_options']);
+}
+
+/**
+ * Default theme implementation for theme('crumbs_breadcrumb_current_page').
+ */
+function theme_crumbs_breadcrumb_current_page(array $item) {
+  return $item['link_title'];
+}
+
+/**
+ * Implements hook_preprocess_page()
+ */
+function crumbs_preprocess_page(&$vars) {
+  $breadcrumb_data = crumbs_get_breadcrumb_data();
+  $vars['crumbs_trail'] = $breadcrumb_data['trail'];
+  // $vars['crumbs_breadcrumb_items'] = $breadcrumb_data['items'];
+  // $vars['crumbs_breadcrumb_html'] = $breadcrumb_data['html'];
+  $vars['breadcrumb'] = $breadcrumb_data['html'];
+  // TODO: Invoke preprocessPage() plugin method.
+  $plugin_engine = crumbs_get_plugin_engine();
+  $action = new crumbs_InvokeAction_preprocessPage($vars);
+  $plugin_engine->invokeAll_alter($action);
+}
+
+
+/**
+ * Implements hook_process_page()
+ */
+function crumbs_process_page(&$vars) {
+  // we just let this hook sit here..
+}
+
+
+/**
+ * Implements hook_themekey_properties()
+ */
+function crumbs_themekey_properties() {
+
+  $attributes = array();
+  $attributes['crumbs:trail_paths'] = array(
+    'description' => t('Crumbs trail paths'),
+    'validator' => '',
+    'page cache' => THEMEKEY_PAGECACHE_SUPPORTED,
+  );
+
+  $maps = array();
+  $maps[] = array(
+    'src' => 'drupal:get_q',
+    'dst' => 'crumbs:trail_paths',
+    'callback' => '_crumbs_themekey_path2trailpaths',
+  );
+
+  return array('attributes' => $attributes, 'maps' => $maps);
+}
+
+
+function _crumbs_themekey_path2trailpaths($path) {
+  $trail = crumbs_get_trail($path);
+  $paths = array();
+  foreach ($trail as $k => $item) {
+    $paths[$item['alias']] = TRUE;
+    $paths[$item['route']] = TRUE;
+    $paths[$k] = TRUE;
+  }
+  return array_keys($paths);
+}
+
+
+function crumbs_get_breadcrumb_data() {
+  static $_data;
+  if (!isset($_data)) {
+    $show_current_page = variable_get('crumbs_show_current_page', FALSE);
+    $trail = crumbs_get_trail();
+    if ($show_current_page) {
+      // Do not show the breadcrumb if it contains only 1 item. This prevents
+      // the breadcrumb from showing up on the frontpage.
+      if (count($trail) == 1) {
+        return array(
+          'trail' => array(),
+          'items' => array(),
+          'html' => '',
+        );
+      }
+    }
+    else {
+      // The current page should not be shown, remove it from the trail so that
+      // the plugins don't need to waste time loading its title.
+      array_pop($trail);
+    }
+
+    module_load_include('inc', 'crumbs', 'crumbs.breadcrumb');
+    $breadcrumb_items = crumbs_build_breadcrumb($trail);
+    $router_item = crumbs_get_router_item($_GET['q']);
+
+    // Support for core's breadcrumb api.
+
+    // Allow modules to alter the breadcrumb, if possible, as that is much
+    // faster than rebuilding an entirely new active trail.
+    drupal_alter('menu_breadcrumb', $breadcrumb_items, $router_item);
+
+    $links = array();
+    foreach ($breadcrumb_items as $i => $item) {
+      if ($show_current_page && $item['href'] == $router_item['href']) {
+        // The current page should be styled differently (no link).
+        $links[$i] = theme('crumbs_breadcrumb_current_page', $item);
+      }
+      else {
+        $links[$i] = theme('crumbs_breadcrumb_link', $item);
+      }
+    }
+
+    $html = theme('breadcrumb', array(
+      'breadcrumb' => $links,
+      'crumbs_breadcrumb_items' => $breadcrumb_items,
+      'crumbs_trail' => $trail,
+    ));
+    $_data = array(
+      'trail' => $trail,
+      'items' => $breadcrumb_items,
+      'html' => $html,
+    );
+  }
+  return $_data;
+}
+
+
+function crumbs_get_trail($path = NULL) {
+  static $_trails;
+  if (!isset($_trails)) {
+    _crumbs_include();
+    $_trails = array();
+  }
+  if (!isset($path)) {
+    $path = $_GET['q'];
+  }
+  $path = drupal_get_normal_path($path);
+  if (!isset($_trails[$path])) {
+    $_trails[$path] = crumbs_build_trail($path);
+  }
+  return $_trails[$path];
+}
+
+
+function crumbs_match_pattern($patterns, $path = NULL) {
+  if (is_string($patterns)) {
+    $patterns = explode("\n", $patterns);
+  }
+  if (!isset($path)) {
+    $path = $_GET['q'];
+  }
+  $trail = crumbs_get_trail($path);
+  $patterns_normalized = array();
+  foreach ($patterns as $pattern) {
+    $pattern = trim(strtolower($pattern));
+    if (strlen($pattern)) {
+      $patterns_normalized[$pattern] = TRUE;
+    }
+  }
+  $patterns = $patterns_normalized;
+  foreach (array_reverse($trail) as $item) {
+    $alias = $item['alias'];
+    if (isset($patterns[$alias])) {
+      return TRUE;
+    }
+    else if (isset($patterns['! '. $alias])) {
+      return FALSE;
+    }
+    else if (isset($patterns[$alias .'/+'])) {
+      return TRUE;
+    }
+    else if (isset($patterns['! '. $alias .'/+'])) {
+      return FALSE;
+    }
+  }
+  $alias = drupal_get_path_alias($path);
+  $fragments = explode('/', $alias);
+  $partial_alias = array_shift($fragments);
+  $match = NULL;
+  while (TRUE) {
+    if (empty($fragments)) break;
+    if (isset($patterns[$partial_alias .'/*'])) {
+      $match = TRUE;
+    }
+    else if (isset($patterns['! '. $partial_alias .'/*'])) {
+      $match = FALSE;
+    }
+    $partial_alias .= '/'. array_shift($fragments);
+  }
+  if (isset($match)) {
+    return $match;
+  }
+  if (isset($patterns['*'])) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+
+function crumbs_get_plugin_engine() {
+  static $_plugin_engine;
+  if (!isset($_plugin_engine)) {
+    module_load_include('inc', 'crumbs', 'crumbs.plugin_engine');
+    $_plugin_engine = _crumbs_load_plugin_engine();
+  }
+  return $_plugin_engine;
+}
+
+
+/**
+ * This function has exactly one possible input value for
+ * each possible return value, except the return value FALSE.
+ *
+ * @param $router_path :string
+ *   The router path can contain any character, but will typically
+ *   have a format like "node/%/edit".
+ * @return :string or FALSE
+ *   A string that can be used as a method suffix,
+ *   or FALSE, where that is not possible.
+ *   The route "node/%/edit" will resolve as "node_x_edit".
+ */
+function crumbs_build_method_suffix($router_path) {
+  $method_suffix = strtolower($router_path);
+  $method_suffix = preg_replace('#[^a-z0-9\%]#', '_', $method_suffix);
+  $method_suffix = strtr($method_suffix, array('%' => 'x'));
+  $reverse = strtr($method_suffix, array('_' => '/'));
+  $reverse = preg_replace(array('#/x/#', '#/x$#'), array('/%/', '/%'), $reverse);
+  // we need to do this two time to catch things like "/x/x/x/x".
+  $reverse = strtr($reverse, array('/x/' => '/%/'));
+  if ($reverse === $router_path) {
+    return $method_suffix;
+  }
+  return FALSE;
+}
+
+
+function crumbs_benchmark($label = NULL, $dpm = FALSE) {
+  static $_t;
+  $t = microtime(TRUE);
+  if (isset($_t) && isset($label)) {
+    $str = 'Duration: ' . number_format(1000 * ($t-$_t), 3) . ' ms for '. $label;
+    if ($dpm) {
+      dpm($str);
+    }
+  }
+  $_t = $t;
+  return isset($str) ? $str : NULL;
+}
+
+
+/**
+ * Include basic files, and get the autoload to work.
+ */
+function _crumbs_include() {
+  static $_first_run = TRUE;
+  if ($_first_run) {
+    if (!module_exists('xautoload')) {
+      spl_autoload_register('_crumbs_autoload');
+    }
+    module_load_include('plugin_engine.inc', 'crumbs');
+    module_load_include('trail.inc', 'crumbs');
+    $_first_run = FALSE;
+  }
+}
+
+
+function _crumbs_autoload($class) {
+  if (preg_match('#^crumbs_(.*)$#', $class, $m)) {
+    $path = strtr($m[1], '_', '/');
+    module_load_include('php', 'crumbs', "lib/$path");
+  }
+}
+
+
+/**
+ * Clean tokens so they are URL friendly.
+ * Taken directly from pathauto_clean_token_values()
+ *
+ * @param $replacements
+ *   An array of token replacements that need to be "cleaned" for use in the URL.
+ * @param $data
+ *   An array of objects used to generate the replacements.
+ * @param $options
+ *   An array of options used to generate the replacements.
+ */
+function crumbs_clean_token_values(&$replacements, $data = array(), $options = array()) {
+  foreach ($replacements as $token => &$value) {
+    // Only clean non-path tokens.
+    if (!preg_match('/(path|alias|url|url-brief)\]$/', $token)) {
+      // We use a simple regex instead of pathauto_cleanstring().
+      $value = preg_replace('#[^a-z0-9/]+#', '-', strtolower($value));
+    }
+  }
+}
+
+
+
+
+// ============================================ interfaces =====================
+
+
+/**
+ * Interface to be used internally by the plugin engine.
+ */
+interface crumbs_InvokeActionInterface_find {
+  function invoke($plugin, $plugin_key, $weight_keeper);
+}
+
+
+/**
+ * Interface to be used internally by the plugin engine.
+ */
+interface crumbs_InvokeActionInterface_alter {
+  function invoke($plugin, $plugin_key);
+}
+
+
+// -----------------------------------------------------------------------------
+
+
+/**
+ * Interface for plugin objects registered with hook_crumbs_plugins().
+ *
+ */
+interface crumbs_MonoPlugin {
+
+  /**
+   * @param $api :crumbs_InjectedAPI_describeMonoPlugin
+   *   Injected API object, with methods that allows the plugin to further
+   *   describe itself.
+   *
+   * @return
+   *   As an alternative to the API object's methods, the plugin can simply
+   *   return a string label.
+   */
+  function describe($api);
+}
+
+
+// -----------------------------------------------------------------------------
+
+
+/**
+ * Interface for plugin objects registered with hook_crumbs_plugins().
+ *
+ */
+interface crumbs_MultiPlugin {
+
+  /**
+   * @param $api :crumbs_InjectedAPI_describeMultiPlugin
+   *   Injected API object, with methods that allow the plugin to further
+   *   describe itself.
+   *   The plugin is supposed to tell Crumbs about all possible rule keys, and
+   *   can give a label and a description for each.
+   *
+   * @return
+   *   As an alternative to the API object's methods, the plugin can simply
+   *   return a key-value array, where the keys are the available rules, and the
+   *   values are their respective labels.
+   */
+  function describe($api);
+}
+
+
+

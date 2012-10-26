@@ -1,0 +1,4 @@
+/* Display image bellow Drupal overlay.*/
+.cloud-zoom-container #wrap {
+  z-index: 499 !important;
+}

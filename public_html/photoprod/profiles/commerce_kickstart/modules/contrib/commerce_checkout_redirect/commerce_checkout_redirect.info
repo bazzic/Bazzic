@@ -1,0 +1,16 @@
+; $Id$
+name = Checkout Redirect
+description = Redirects anonymous users on checkout to a user registration/login page to force them to login before checkout
+package = Commerce (contrib)
+dependencies[] = commerce
+core = 7.x
+
+; Base module files
+files[] = commerce_checkout_redirect.module
+
+; Information added by drupal.org packaging script on 2011-10-03
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "commerce_checkout_redirect"
+datestamp = "1317643693"
+

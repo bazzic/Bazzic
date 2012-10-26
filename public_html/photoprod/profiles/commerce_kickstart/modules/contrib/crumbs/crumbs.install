@@ -1,0 +1,14 @@
+<?php
+
+
+/**
+ * Implements hook_uninstall().
+ */
+function crumbs_uninstall() {
+  variable_del('crumbs');
+  variable_del('crumbs_weights');
+  variable_del('crumbs_show_current_page');
+}
+
+
+

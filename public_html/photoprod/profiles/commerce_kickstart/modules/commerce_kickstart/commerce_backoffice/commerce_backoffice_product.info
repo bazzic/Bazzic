@@ -1,0 +1,22 @@
+name = Commerce Backoffice Product
+description = Provides advanced product management.
+core = 7.x
+package = Commerce (contrib)
+
+dependencies[] = commerce_backoffice
+dependencies[] = commerce_product
+dependencies[] = commerce_product_ui
+dependencies[] = views_bulk_operations
+dependencies[] = views_megarow
+
+files[] = includes/views/handlers/views_handler_filter_term_node_tid_multiple_vocabularies.inc
+files[] = includes/views/handlers/commerce_backoffice_handler_filter_product_display_term_node_tid.inc
+files[] = includes/views/handlers/commerce_backoffice_product_handler_field_product_quick_edit_form.inc
+files[] = includes/views/handlers/commerce_backoffice_product_handler_field_node_operations.inc
+
+; Information added by drupal.org packaging script on 2012-09-17
+version = "7.x-2.0-rc1"
+core = "7.x"
+project = "commerce_kickstart"
+datestamp = "1347893544"
+

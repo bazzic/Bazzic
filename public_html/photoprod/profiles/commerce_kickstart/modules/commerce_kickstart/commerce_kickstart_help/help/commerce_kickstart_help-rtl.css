@@ -1,0 +1,18 @@
+#block-commerce-kickstart-help-commerce-kickstart-ressources {
+  float: right;
+}
+
+#block-commerce-kickstart-help-commerce-kickstart-community {
+  float: left;
+}
+
+#block-commerce-kickstart-help-commerce-kickstart-ressources h2, #block-commerce-kickstart-help-commerce-kickstart-community h2 {
+  background: transparent url("../images/help-lg.png") no-repeat right 0;
+  padding: 5px 40px 5px 0px;
+}
+
+#block-commerce-kickstart-help-commerce-kickstart-ressources .content,
+#block-commerce-kickstart-help-commerce-kickstart-community .content {
+  padding-right: 40px;
+  padding-left: 0px;
+}

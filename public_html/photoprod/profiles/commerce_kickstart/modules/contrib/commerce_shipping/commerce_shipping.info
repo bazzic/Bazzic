@@ -1,0 +1,16 @@
+name = Shipping
+description = Implement core shipping features for Drupal commerce.
+package = Commerce (shipping)
+dependencies[] = commerce
+dependencies[] = commerce_line_item
+dependencies[] = commerce_payment
+dependencies[] = list
+dependencies[] = rules
+core = 7.x
+
+; Information added by drupal.org packaging script on 2012-09-02
+version = "7.x-2.0-beta1+19-dev"
+core = "7.x"
+project = "commerce_shipping"
+datestamp = "1346544977"
+

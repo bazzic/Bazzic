@@ -1,0 +1,14 @@
+name = Commerce Kickstart Lite Product Zoom
+description = Enable the cloud zoom functionality for product images.
+core = 7.x
+package = Commerce Kickstart
+php = 5.2.4
+dependencies[] = cloud_zoom
+dependencies[] = commerce_kickstart_lite_product
+
+; Information added by drupal.org packaging script on 2012-09-17
+version = "7.x-2.0-rc1"
+core = "7.x"
+project = "commerce_kickstart"
+datestamp = "1347893544"
+

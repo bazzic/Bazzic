@@ -1,0 +1,14 @@
+
+name = Commerce AutoSKU
+description = Automatically Creates the SKU of a product using tokens.
+package = Commerce (contrib)
+dependencies[] = commerce_product
+core = 7.x
+
+files[] = commerce_autosku.test
+; Information added by drupal.org packaging script on 2012-08-01
+version = "7.x-1.1+1-dev"
+core = "7.x"
+project = "commerce_autosku"
+datestamp = "1343779799"
+

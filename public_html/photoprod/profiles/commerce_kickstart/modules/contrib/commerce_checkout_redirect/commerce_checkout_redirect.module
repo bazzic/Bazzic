@@ -1,0 +1,146 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Redirects anonymous users on checkout to a user registration/login page to force them to login before checkout.
+ */
+
+/**
+ * Implements hook_commerce_checkout_router()
+ */
+function commerce_checkout_redirect_commerce_checkout_router($order, $checkout_page) {
+  global $user;
+  
+  if (!$user->uid) {
+    drupal_set_message(t('You need to login or create a new account in order to validate your order'), 'status');
+    drupal_goto('checkout/'.$order->order_id.'/user/register');
+  }
+}
+
+/**
+ * Implements hook_menu()
+ **/
+function commerce_checkout_redirect_menu() {
+  // Registration and login pages.
+  $items['checkout/%/user'] = array(
+    'title' => 'User checkout',
+    'access callback' => 'user_is_anonymous',
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['checkout/%/user/login'] = array(
+    'title' => 'Log in',
+    'page callback' => 'user_page',
+    'access callback' => 'user_is_anonymous',
+    'file' => 'user.pages.inc',
+    'file path' => drupal_get_path('module', 'user'),
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['checkout/%/user/register'] = array(
+    'title' => 'Create new account',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('user_register_form'),
+    'access callback' => 'user_register_access',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['checkout/%/user/password'] = array(
+    'title' => 'Request new password',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('user_pass'),
+    'access callback' => TRUE,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'user.pages.inc',
+    'file path' => drupal_get_path('module', 'user'),
+  );
+
+
+  return $items;
+}
+
+/**
+ * Implements hook_user_insert()
+ */
+function commerce_checkout_redirect_user_insert(&$edit, $account, $category) {
+  if (arg(0) == 'checkout' && arg(2) == 'user' && arg(3) == 'register') {
+    // The user wanted to checkout. Store this in a session variable
+    $_SESSION['commerce_checkout_redirect_order_id'] = arg(1);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() 
+ */
+function commerce_checkout_redirect_form_user_profile_form_alter(&$form, &$form_state) {
+  if (isset($_SESSION['commerce_checkout_redirect_order_id'])) {
+    $form['#submit'][0] = 'commerce_checkout_redirect_user_profile_submit';
+  }
+}
+
+/**
+ * Callback
+ */
+function commerce_checkout_redirect_user_profile_submit($form, &$form_state) {
+  $order_id = $_SESSION['commerce_checkout_redirect_order_id'];
+  unset($_SESSION['commerce_checkout_redirect_order_id']);
+  $form_state['redirect'] = 'checkout/'.$order_id;
+  user_profile_form_submit($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ */
+function commerce_checkout_redirect_form_user_login_alter(&$form, &$form_state) {
+  if (arg(0) == 'checkout' && arg(2) == 'user' && arg(3) == 'login') {
+    $form['#submit'][0] = 'commerce_checkout_redirect_user_login_submit';
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter()
+ */
+function commerce_checkout_redirect_form_user_register_form_alter(&$form, &$form_state) {
+  if (arg(0) == 'checkout' && arg(2) == 'user' && arg(3) == 'register') {
+    $form['#submit'][0] = 'commerce_checkout_redirect_user_register_submit';
+  }
+}
+
+/**
+ * User register submit callback.
+ *
+ * If e-mail verification is required, redirect user to the login page cause he
+ * won't be able to continue checkout process.
+ */
+function commerce_checkout_redirect_user_register_submit($form, &$form_state) {
+  user_register_submit($form, $form_state);
+  $order_id = arg(1);
+  $user_email_verification = variable_get('user_email_verification', TRUE);
+  if ($user_email_verification) {
+    drupal_goto('checkout/' . $order_id . '/user/login');
+  }
+  else {
+    drupal_goto('checkout/'.$order_id);
+  }
+}
+
+/**
+ * Callback
+ */
+function commerce_checkout_redirect_user_login_submit($form, &$form_state) {
+  global $user;
+  $user = user_load($form_state['uid']);
+  
+  $form_state['redirect'] = 'checkout/'.arg(1);
+  user_login_finalize($form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function commerce_checkout_redirect_form_user_pass_alter(&$form, &$form_state) {
+  if (arg(0) == 'checkout' && arg(2) == 'user' && arg(3) == 'password') {
+    $form['#submit'][0] = 'commerce_checkout_redirect_user_login_submit';
+  }
+}

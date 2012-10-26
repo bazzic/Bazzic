@@ -1,0 +1,38 @@
+name = Commerce Kickstart Search
+description = Provides the faceted search page and supporting plugins, sorts, and other functionality.
+core = 7.x
+package = Commerce Kickstart
+php = 5.2.4
+dependencies[] = current_search
+dependencies[] = entity
+dependencies[] = facetapi
+dependencies[] = features
+dependencies[] = search_api
+dependencies[] = search_api_db
+dependencies[] = search_api_facetapi
+dependencies[] = search_api_ranges
+dependencies[] = search_api_sorts
+dependencies[] = search_api_views
+dependencies[] = views
+features[ctools][] = current_search:current_search:1
+features[ctools][] = facetapi:facetapi_defaults:1
+features[ctools][] = views:views_default:3.0
+features[current_search][] = kickstart_search
+features[facetapi][] = search_api@product_display:block:field_product:commerce_price:amount_float
+features[features_api][] = api:1
+features[search_api_sort][] = product_display__created
+features[search_api_sort][] = product_display__field_product_commerce_price_amount_float_asc
+features[search_api_sort][] = product_display__title
+features[user_permission][] = use search_api_sorts
+features[views_view][] = display_products
+files[] = plugins/facetapi/filter_kickstart_same_search.inc
+files[] = plugins/facetapi/filter_kickstart_search_start.inc
+files[] = includes/commerce_kickstart_search_product_display_filter.inc
+scripts[] = commerce_kickstart_search.js
+
+; Information added by drupal.org packaging script on 2012-09-17
+version = "7.x-2.0-rc1"
+core = "7.x"
+project = "commerce_kickstart"
+datestamp = "1347893544"
+

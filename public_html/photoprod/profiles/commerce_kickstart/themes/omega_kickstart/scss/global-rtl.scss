@@ -1,0 +1,357 @@
+/**
+ * Global css.
+ */
+.logo-img {
+  float: right;
+  left: auto;
+  margin-left: 20px;
+  margin-right: 0px;
+}
+
+
+#block-views-exp-display-products-page {
+  float: left;
+  right: auto;
+}
+
+#block-views-exp-display-products-page .views-exposed-widget {
+  float: right;
+  right: 25px;
+}
+
+#block-views-exp-display-products-page .views-submit-button .form-submit {
+  right: -25px;
+  left: 0px;
+}
+
+#block-views-exp-display-products-page #edit-search-api-views-fulltext {
+  padding: 5px;
+}
+
+.navigation .primary-menu {
+  float: right !important;
+  margin-left: 12px;
+  margin-right: 0px;
+}
+
+.navigation .second-menu {
+  float: left !important;
+  left: auto;
+}
+
+/**
+ * Front page css.
+ */
+.bx-prev {
+  left: 0;
+}
+
+.block-promotional-banner {
+  left: 0px;
+  right: -10px;
+}
+
+.block-shipping-discount {
+  right: -50px;
+  left: 0px;
+}
+
+#promotional_banner .promotional_banner_special_offer {
+  float: left !important;
+  right: auto !important;
+  left: 10px;
+}
+
+#zone-footer {
+  direction: ltr;
+}
+#region-footer-first {
+  float: left;
+}
+
+#block-menu-menu-footer-navigation .block-inner {
+  float: right;
+}
+
+.section-footer ul.menu li {
+  padding-right: 20px;
+  float: right;
+}
+/**
+ * Collection page.
+ */
+.view-collection-taxonomy-term .view-header .collection-terms .view-content .item-list {
+  float: right;
+}
+.responsive-layout-narrow .view-collection-taxonomy-term .view-header {
+  .collection-terms {
+    float: left;
+    .view-content {
+      text-align: left;
+    }
+  }
+}
+.responsive-layout-normal .view-collection-taxonomy-term .view-header {
+  .collection-terms {
+    float: left !important;
+    .view-content {
+      text-align: left;
+      .item-list {
+        float: none;
+      }
+    }
+  }
+}
+
+/**
+ * All products page css.
+ */
+.region-sidebar-first .block-facetapi {
+  margin-right: 15px;
+  padding-right: 15px;
+  padding-left: 0px;
+  margin-left: 0px;
+}
+
+.block-search-sorts .block-inner {
+  float: left;
+  clear: left;
+  right: auto;
+  display: inline-block;
+}
+
+#block-search-api-sorts-search-sorts .block-title {
+  float: right;
+  margin-left: 5px;
+  margin-right: 0px;
+}
+
+ul.facetapi-facetapi-checkbox-links li input {
+  margin-right: 0;
+  margin-left: .5em;
+}
+
+/**
+ * Specific product type page.
+ */
+.view-collection-taxonomy-term .products-per-collection li.views-row {
+  float: right;
+  left: auto;
+}
+
+.views-field-field-extractor-field-product ul li {
+  float: right;
+}
+
+/**
+ * Specific product page.
+ */
+.node-product-type .field-name-field-product form.commerce-add-to-cart label,
+.responsive-layout-normal .node-product-type .field-name-field-product form.commerce-add-to-cart label {
+  float: right;
+}
+.node-product-type .field-name-body .read-more a,
+.node-product-type .field-name-body .read-less a {
+  background-position:right top !important;
+}
+.node-product-type .field-name-body .read-more a,
+.node-product-type .field-name-body .read-less a {
+  padding-right: 0;
+  padding-left: 20px;
+}
+
+
+/**
+ * Cart page.
+ */
+.page-cart .entity-commerce-product .content {
+  .field-label {
+    float: right;
+  }
+  .field-item {
+    display: block;
+  }
+}
+
+/**
+ * Checkout page.
+ */
+.page-checkout #commerce-checkout-form-checkout table thead th {
+  text-align: right;
+}
+
+.page-checkout fieldset.account .form-item-account-login-mail label,
+.page-checkout fieldset.customer_profile_shipping .form-item-customer-profile-shipping-commerce-customer-address-und-0-name-line label,
+.page-checkout fieldset.customer_profile_shipping .form-item-customer-profile-shipping-commerce-customer-address-und-0-country label,
+.page-checkout fieldset.customer_profile_shipping .street-block label,
+.page-checkout fieldset.customer_profile_billing .form-item-customer-profile-billing-addressbook label,
+.page-checkout fieldset.customer_profile_billing .form-item-customer-profile-billing-commerce-customer-address-und-0-name-line label,
+.page-checkout fieldset.customer_profile_billing .form-item-customer-profile-billing-commerce-customer-address-und-0-country label,
+.page-checkout fieldset.customer_profile_billing .street-block label {
+  float: right;
+}
+
+.addressfield-container-inline > div.form-item {
+  float: right;
+}
+
+
+
+/**
+ * Shipping page.
+ */
+.page-checkout .form-item-commerce-shipping-shipping-service {
+  float: right;
+  clear: right;
+}
+
+/**
+ * Review order page.
+ */
+.page-user-orders .view-commerce-line-item-table th,
+.page-user-orders .view-commerce-user-orders th,
+.view-commerce-backoffice-user-orders th,
+.view-commerce-backoffice-order-messages th,
+.view-commerce-cart-summary th {
+  text-align: right;
+}
+
+input.checkout-continue {
+  margin-left: 10px;
+  margin-right: 0px;
+}
+
+/**
+ * Shopping cart block.
+ */
+.block-shopping-cart-block .content {
+  background-position: right top;
+  float: left;
+}
+.block-shopping-cart-block .content .view-shopping-cart .view-empty p {
+  padding-right: 0;
+  padding-left: 25px;
+}
+.block-shopping-cart-block .content .view-shopping-cart .view-empty p,
+.block-shopping-cart-block .content .view-shopping-cart .line-item-summary {
+  float: right;
+}
+.block-shopping-cart-block .content {
+  padding-right: 10px;
+  padding-left: 40px;
+}
+.block-shopping-cart-block .content .view-shopping-cart .line-item-summary .line-item-total {
+  float: right;
+}
+.block-shopping-cart-block .content .view-shopping-cart .line-item-summary .links {
+
+}
+
+/**
+ * Add to cart popin.
+ */
+/*
+.commerce-kickstart-add-to-cart .button-wrapper {
+  float: left;
+}
+
+.commerce-kickstart-add-to-cart .field,
+.commerce-kickstart-add-to-cart .commerce-product-sku {
+  text-align: left;
+}
+
+.commerce-product-sku .commerce-product-sku-label,
+.commerce-kickstart-add-to-cart .views-label-quantity,
+.commerce-kickstart-add-to-cart .views-label-commerce-price {
+  float: right;
+}*/
+div.messages.commerce-kickstart-add-to-cart .message-inner .view-confirm-message-product-display .view-content .views-field-commerce-product .content .commerce-product-sku .commerce-product-sku-label
+{}
+.responsive-layout-narrow,
+.responsive-layout-normal {
+  div.messages.commerce-kickstart-add-to-cart {
+    .message-inner {
+      .button-wrapper {
+        left: 0;
+        right: auto;
+      }
+    }
+  }
+}
+.responsive-layout-normal div.commerce-kickstart-add-to-cart {
+  .message-inner {
+    .added-product-title {
+      padding-left: 0;
+    }
+    .view-confirm-message-product-display .view-content {
+      margin-right: 130px;
+      margin-left: 0;
+      .views-field-commerce-product {
+        .content {
+          .field-name-field-images {
+            left: auto !important;
+            right: 0;
+          }
+        }
+      }
+    }
+  }
+}
+div.messages.commerce-kickstart-add-to-cart {
+  .message-inner {
+    .added-product-title {
+      float: right;
+      padding: 10px 10px 10px 30px;
+    }
+    .button-wrapper {
+      float: left;
+    }
+  }
+  .view-confirm-message-product-display {
+    .view-content {
+      padding-right: 0px !important;
+      padding-left: 10px !important;
+      text-align: right !important;
+      .views-field-commerce-product {
+        .content {
+          .commerce-product-sku .commerce-product-sku-label {
+            float: right;
+            padding-left: 5px;
+          }
+          .commerce-product-sku,
+          .field {
+            margin-right: 0px !important;
+          }
+          .field-name-field-images {
+            float: right !important;
+            margin-right: 20px !important;
+          }
+        }
+      }
+      .views-field-quantity {
+        text-align: right;
+        .views-label-quantity {
+          float: right;
+          padding-left: 5px;
+        }
+      }
+      .views-field-commerce-price {
+        text-align: right;
+        .views-label-commerce-price {
+          float: right;
+          padding-left: 5px;
+        }
+      }
+    }
+    .field-label {
+      float: right;
+    }
+    .field-content .field {
+      text-align: right;
+    }
+  }
+  .commerce-kickstart-add-to-cart-close {
+    left: 15px;
+    right: auto !important;
+  }
+}
