@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * Implements hook_views_api().
+ */
+function photobook_views_api() {
+  return array(
+    'api' => 3.0,
+    'path' => drupal_get_path('module', 'photobook') . '/views',
+  );
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function photobook_form_alter(&$form, $form_state, $form_id) { 
+  //krumo($form);
+  if ($form_id == 'views_form_photobooks_page') {
+    $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
+    foreach ($form['add_to_cart_quantity'] as $key => $element) {
+      //krumo($element);
+      if (is_array($element)) {
+        //print_r($_GET['q']);
+        $quantity = isset($_GET['quantity' . $key]) ? $_GET['quantity' . $key] : 0;
+        $form['add_to_cart_quantity'][$key]['#type'] = 'select';
+        $form['add_to_cart_quantity'][$key]['#options'] = array(0,1,2,3,4,5,6,7,8,9,10);
+        $form['add_to_cart_quantity'][$key]['#default_value'] = $quantity;
+        unset($form['add_to_cart_quantity'][$key]['#size']);
+      }
+    }
+    //krumo($form);
+  }
+  if ($form_id == 'views_exposed_form_photobooks_page') {
+    //krumo($form);
+  }
+  
+}
+
+
+
+
+

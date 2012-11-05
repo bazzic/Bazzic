@@ -1,0 +1,9 @@
+name = Photobook
+description = Custom code for Photo Productions
+core = 7.x
+
+; Views handlers
+files[] = views/handlers/photobook_handler_area_price_total.inc
+
+files[] = photobook.module
+
