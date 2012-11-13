@@ -18,7 +18,10 @@ Drupal.media_gallery.add_media = function (mediaFiles) {
   // TODO AN-17966: Add the images to the node's media multifield on the client
   // side instead of reloading the page.
   var mediaAdded = function (returnedData, textStatus, XMLHttpRequest) {
-    parent.window.location.reload();
+	// HACK START: We don't want to reload the parent, since we're already in a colorbox when editing.  
+	//parent.window.location.reload();  
+    window.location.reload();
+    // HACK END
   };
 
   var errorCallback = function () {
