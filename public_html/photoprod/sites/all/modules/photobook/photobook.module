@@ -16,7 +16,29 @@ function photobook_views_api() {
 function photobook_form_alter(&$form, $form_state, $form_id) { 
   //krumo($form);
   if ($form_id == 'views_form_photobooks_page') {
-    $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
+    //krumo($form);
+    //$form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
+    
+    $style_info = field_info_field('field_style');
+    $style_options = $style_info['settings']['allowed_values'];
+    
+    $pages_info = field_info_field('field_pages_list');
+    $pages_options = $pages_info['settings']['allowed_values'];
+    
+    $form['add_to_cart_pages'] = array(
+        '#title' => t('Pages'),
+        '#type' => 'select',
+        '#options' => $pages_options,
+        '#ajax' => array('callback' => 'photobook_update_cart'),
+      );
+    
+    $form['add_to_cart_style'] = array(
+        '#title' => t('Style'),
+        '#type' => 'radios',
+        '#options' => $style_options,
+    );
+    unset($form['actions']['submit']);
+    
     foreach ($form['add_to_cart_quantity'] as $key => $element) {
       //krumo($element);
       if (is_array($element)) {
@@ -25,16 +47,69 @@ function photobook_form_alter(&$form, $form_state, $form_id) {
         $form['add_to_cart_quantity'][$key]['#type'] = 'select';
         $form['add_to_cart_quantity'][$key]['#options'] = array(0,1,2,3,4,5,6,7,8,9,10);
         $form['add_to_cart_quantity'][$key]['#default_value'] = $quantity;
+        $form['add_to_cart_quantity'][$key]['#ajax']['callback'] = 'photobook_update_cart';
         unset($form['add_to_cart_quantity'][$key]['#size']);
       }
     }
     //krumo($form);
-  }
-  if ($form_id == 'views_exposed_form_photobooks_page') {
-    //krumo($form);
-  }
-  
+  }  
 }
+
+function photobook_get_newest_gallery() {
+  global $user;
+  $result = db_select('node', 'n')
+    ->fields('n', array('nid'))
+    ->condition('uid', $user->uid,'=')
+    ->orderBy('created', 'DESC')
+    ->range(0,1)
+    ->execute()
+    ->fetchAssoc();
+  return $result['nid'];
+}
+
+function photobook_update_cart($form, &$form_state) {
+    global $user;
+    //krumo($form);
+
+    $field_name = 'add_to_cart_quantity';
+    $product_quantities = array();
+    foreach (element_children($form[$field_name]) as $row_id) {
+      // Don't add products that have quantity 0.
+      $quantity = $form_state['values'][$field_name][$row_id];
+      if ($quantity > 0) {
+        $product_id = $form[$field_name][$row_id]['#product_id'];
+        $product_quantities[$product_id] = $quantity;
+      }
+    }
+
+    $products = commerce_product_load_multiple(array_keys($product_quantities));
+
+    $style_value = $form_state['values']['add_to_cart_style'];
+    $pages_value = $form_state['values']['add_to_cart_pages'];
+    
+    $order = commerce_cart_order_load($user->uid);
+    commerce_cart_order_empty($order);
+    
+    foreach ($products as $product_id => $product) {
+      $quantity = $product_quantities[$product_id];
+      $line_item = commerce_product_line_item_new($product, $quantity);
+      $line_item->data['context']['product_ids'] = array($product_id);
+      $line_item->data['context']['add_to_cart_combine'] = 1;
+
+      $line_item->field_style['und'][] = array('value' => $style_value);
+      $line_item->field_pages_list['und'][] = array('value' => $pages_value);
+
+      rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
+      commerce_cart_product_add($user->uid, $line_item, 1);
+    }
+    $view = views_get_view('shopping_cart');
+    $order_summary = $view->preview();
+    $commands = array();
+    $commands[] = ajax_command_replace('.view-shopping-cart', $order_summary);
+
+    return array('#type' => 'ajax', '#commands' => $commands);
+  }
+
 
 
 
