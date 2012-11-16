@@ -58,43 +58,6 @@ class commerce_add_to_cart_extras_handler_field_quantity extends views_handler_f
     $form[$this->options['id']] = array(
       '#tree' => TRUE,
     );
-    
-    $style_info = field_info_field('field_style');
-    $style_options = $style_info['settings']['allowed_values'];
-    
-    $pages_info = field_info_field('field_pages_list');
-    $pages_options = $pages_info['settings']['allowed_values'];
-    
-    //field_attach_form('commerce_line_item', $this->view, $form, $form_state);
-    
-    //$media_info = field_info_field('field_photos');
-    //$media_instances = field_info_instances('commerce_line_item', 'product');
-    //$media_instance = $media_instances['field_photos'];
-    //$media_items = $media_instance['default_value'];
-    //$media_field = field_default_form(NULL, NULL, $media_info, $media_instance, LANGUAGE_NONE, $media_items, $form, $form_state);
-    
-    //$gallery = field_view_field('commerce_line_item', $this->view, 'field_photos');
-    
-    //$gallery = drupal_get_form('media_gallery_form');
-    //$form['add_to_cart_media_gallery'] = $gallery;
-    //krumo($media_field);exit;
-    //$form += $media_field;
-    
-    //$form['add_to_cart_photos'] = array(
-    //    '#type' => 'collection',
-    //);
-    
-    $form['add_to_cart_pages'] = array(
-        '#title' => t('Pages'),
-        '#type' => 'select',
-        '#options' => $pages_options,
-      );
-    
-    $form['add_to_cart_style'] = array(
-        '#title' => t('Style'),
-        '#type' => 'radios',
-        '#options' => $style_options,
-      );
     // At this point, the query has already been run, so we can access the results
     // in order to get the product_id.
     foreach ($this->view->result as $row_index => $row) {
@@ -107,7 +70,6 @@ class commerce_add_to_cart_extras_handler_field_quantity extends views_handler_f
         '#size' => 5,
       );
     }
-    //krumo($form);
   }
 
   function views_form_validate($form, &$form_state) {
@@ -141,14 +103,6 @@ class commerce_add_to_cart_extras_handler_field_quantity extends views_handler_f
     }
 
     $products = commerce_product_load_multiple(array_keys($product_quantities));
-    
-    //$order = commerce_order_new($user->uid);
-    //$order->field_style['und'][] = array('value' => 'Moderno');
-    //commerce_order_save($order);
-    //krumo($form_state['values']);exit;
-    $style_value = $form_state['values']['add_to_cart_style'];
-    $pages_value = $form_state['values']['add_to_cart_pages'];
-    
     foreach ($products as $product_id => $product) {
       $quantity = $product_quantities[$product_id];
       $line_item = commerce_product_line_item_new($product, $quantity);
@@ -160,11 +114,6 @@ class commerce_add_to_cart_extras_handler_field_quantity extends views_handler_f
         $this->options['display_path']) {
         $line_item->data['context']['display_path'] = $this->view->display[$this->view->current_display]->display_options['path'];
       }
-      
-      //$line_item->data['context']['style'] = 1;
-      $line_item->field_style['und'][] = array('value' => $style_value);
-      $line_item->field_pages_list['und'][] = array('value' => $pages_value);
-      //krumo($line_item);exit;
 
       // Store the View data in the context data array as well.
       $line_item->data['context']['view'] = array(
@@ -173,9 +122,7 @@ class commerce_add_to_cart_extras_handler_field_quantity extends views_handler_f
         'human_name' => $this->view->human_name,
         'page' => $this->view->current_page,
       );
-      $order = commerce_cart_order_load($user->uid);
-      commerce_cart_order_empty($order);
-      
+
       commerce_cart_product_add($user->uid, $line_item, $this->options['combine']);
     }
 
