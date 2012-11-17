@@ -16,6 +16,7 @@ function photobook_views_api() {
 function photobook_form_alter(&$form, $form_state, $form_id) { 
   //krumo($form);
   if ($form_id == 'views_form_photobooks_page') {
+    //krumo(photobook_update_cart($form, $form_state));
     //krumo($form);
     //$form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
     
@@ -90,17 +91,35 @@ function photobook_update_cart($form, &$form_state) {
     $order = commerce_cart_order_load($user->uid);
     commerce_cart_order_empty($order);
     
+    $product_amounts = array();
     foreach ($products as $product_id => $product) {
+      $product_amounts[] = $product->amount;
+    }
+    
+    $highest_price_set = FALSE;
+    foreach ($products as $product_id => $product) {
+      $combine = 1;
       $quantity = $product_quantities[$product_id];
-      $line_item = commerce_product_line_item_new($product, $quantity);
-      $line_item->data['context']['product_ids'] = array($product_id);
-      $line_item->data['context']['add_to_cart_combine'] = 1;
-
-      $line_item->field_style['und'][] = array('value' => $style_value);
-      $line_item->field_pages_list['und'][] = array('value' => $pages_value);
-
-      rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
-      commerce_cart_product_add($user->uid, $line_item, 1);
+      
+      if (max($product_amounts) == $product->amount && !$highest_price_set) {
+        // This product will not receive a discount.
+        $line_item = commerce_product_line_item_new($product, 1);
+        $line_item->field_highest_price['und'][] = array('value' => 1);
+        $highest_price_set = TRUE;
+        $combine = 0;
+        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+        if ($quantity > 1) {
+          // Reset the products that will take the discount to the products array.
+          $quantity = $quantity - 1;
+          $line_item = commerce_product_line_item_new($product, $quantity);
+          photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+        } 
+      } else {
+        $line_item = commerce_product_line_item_new($product, $quantity);
+        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+      }
+      
+      
     }
     $view = views_get_view('shopping_cart');
     $order_summary = $view->preview();
@@ -110,7 +129,15 @@ function photobook_update_cart($form, &$form_state) {
     return array('#type' => 'ajax', '#commands' => $commands);
   }
 
-
+function photobooks_add_line_item($line_item, $combine, $style_value, $pages_value) {
+  global $user;
+  $line_item->data['context']['product_ids'] = array($product_id);
+  $line_item->data['context']['add_to_cart_combine'] = $combine;
+  $line_item->field_style['und'][] = array('value' => $style_value);
+  $line_item->field_pages_list['und'][] = array('value' => $pages_value);
+  rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
+  commerce_cart_product_add($user->uid, $line_item, $combine);
+}
 
 
 
