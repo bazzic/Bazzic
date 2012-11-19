@@ -18,7 +18,7 @@ function photobook_form_alter(&$form, $form_state, $form_id) {
   if ($form_id == 'views_form_photobooks_page') {
     //krumo(photobook_update_cart($form, $form_state));
     //krumo($form);
-    //$form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
+    $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
     
     $style_info = field_info_field('field_style');
     $style_options = $style_info['settings']['allowed_values'];
@@ -93,7 +93,7 @@ function photobook_update_cart($form, &$form_state) {
     
     $product_amounts = array();
     foreach ($products as $product_id => $product) {
-      $product_amounts[] = $product->amount;
+      $product_amounts[] = $product->commerce_price['und'][0]['amount'];
     }
     
     $highest_price_set = FALSE;
@@ -101,7 +101,7 @@ function photobook_update_cart($form, &$form_state) {
       $combine = 1;
       $quantity = $product_quantities[$product_id];
       
-      if (max($product_amounts) == $product->amount && !$highest_price_set) {
+      if (max($product_amounts) == $product->commerce_price['und'][0]['amount'] && !$highest_price_set) {
         // This product will not receive a discount.
         $line_item = commerce_product_line_item_new($product, 1);
         $line_item->field_highest_price['und'][] = array('value' => 1);
