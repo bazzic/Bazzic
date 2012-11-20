@@ -89,7 +89,9 @@ function photobook_update_cart($form, &$form_state) {
     $pages_value = $form_state['values']['add_to_cart_pages'];
     
     $order = commerce_cart_order_load($user->uid);
-    commerce_cart_order_empty($order);
+    if ($order) {
+      commerce_cart_order_empty($order);
+    }
     
     $product_amounts = array();
     foreach ($products as $product_id => $product) {
