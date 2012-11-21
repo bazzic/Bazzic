@@ -17,6 +17,11 @@
 					$("#edit-1").attr("disabled", "disabled");
 				}
 				
+				var pages = parseInt($('#edit-add-to-cart-pages').val());
+				var min = pages + 2;
+				var max = pages * 6 + 2;
+				$("li.image-numbers").text('You have chosen ' + pages + ' pages, so you can have between ' + min + ' and ' + max + ' photos.');
+				
 				$('#edit-add-to-cart-pages').change(function() {
 					var pages = parseInt($('#edit-add-to-cart-pages').val());
 					var min = pages + 2;

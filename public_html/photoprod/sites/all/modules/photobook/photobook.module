@@ -30,6 +30,9 @@ function photobook_menu() {
 }
 
 function photobook_order_form($form, $form_state) {
+  
+//krumo($form_state);
+  
   $product_name_results = photobook_get_product_names();
   $product_titles = array();
   foreach ($product_name_results as $record) {
@@ -54,6 +57,7 @@ function photobook_order_form($form, $form_state) {
       '#ajax' => array('callback' => 'photobook_update_cart'),
       '#prefix' => '<td>',
       '#suffix' => '</td>',
+      //'#default_value' => $form_state['values']['add_to_cart_quantity' . $product_id],
     );
   }
 
@@ -107,7 +111,24 @@ function photobook_order_form($form, $form_state) {
 }
 
 function photobook_order_form_validate($form, &$form_state) {
-  //form_set_error('error', krumo($form_state));
+  if ($form_state['triggering_element']['#type'] == 'submit') {
+    $nid = photobook_get_newest_gallery();
+    $pages = (int)$form_state['values']['add_to_cart_pages'];
+    $gallery = node_load($nid);
+    $num_gallery_images = count($gallery->media_gallery_media['und']);
+    $min = $pages + 2;
+    $max = $pages * 6 + 2;
+    
+    if ($num_gallery_images < $min) {
+      form_set_error('min_error', 'You have less than ' . $min . ' images.');
+    }
+    
+    if ($num_gallery_images > $max) {
+      form_set_error('max_error', 'You have more than ' . $max . ' images.');
+    }
+    
+    //form_set_error('error', krumo($form_state['triggering_element']));
+  }
 }
 
 function photobook_order_form_submit($form, &$form_state) {
