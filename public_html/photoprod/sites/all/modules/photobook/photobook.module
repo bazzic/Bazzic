@@ -11,49 +11,114 @@ function photobook_views_api() {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function photobook_menu() {
+  $items = array();
+
+  $items['order-photobooks'] = array(
+    'title' => 'Order your photobooks',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('photobook_order_form'),
+    'access callback' => 'user_access',
+    'access arguments' => array('View own orders of any type'),
+    'description' => 'Create new photobook order',
+    'type' => MENU_LOCAL_TASK,
+  );
+  
+  return $items;
+}
+
+function photobook_order_form($form, $form_state) {
+  $product_name_results = photobook_get_product_names();
+  $product_titles = array();
+  foreach ($product_name_results as $record) {
+    $product_titles[$record->product_id] = $record->title;
+  }
+  
+  $form['add_to_cart_quantity'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Photobooks'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#prefix' => '<table><tr>',
+    '#suffix' => '</tr></table>',
+  );
+  
+  foreach ($product_titles as $product_id => $title) {
+    $form['add_to_cart_quantity']['add_to_cart_quantity' . $product_id] = array(
+      '#product_id' => $product_id,
+      '#title' => $title,
+      '#type' => 'select',
+      '#options' => array(0,1,2,3,4,5,6,7,8,9,10), 
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+      '#prefix' => '<td>',
+      '#suffix' => '</td>',
+    );
+  }
+
+  $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
+    
+  $style_info = field_info_field('field_style');
+  $style_options = $style_info['settings']['allowed_values'];
+    
+  $pages_info = field_info_field('field_pages_list');
+  $pages_options = $pages_info['settings']['allowed_values'];
+    
+  $form['add_to_cart_pages'] = array(
+      '#title' => t('Pages'),
+      '#type' => 'select',
+      '#options' => $pages_options,
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+    );
+    
+  $form['add_to_cart_style'] = array(
+      '#title' => t('Style'),
+      '#type' => 'radios',
+      '#options' => $style_options,
+  );
+  
+  $nid = photobook_get_newest_gallery();
+  
+  $form['photos'] = array(
+    '#markup' => '
+        <div><a class="colorbox-load" href="node/add/media-gallery?width=900&height=600&iframe=true">Add Gallery</a></div>
+        <div><a class="colorbox-load" href="node/' . $nid . '?width=900&height=600&iframe=true">Arrange your photos</a></div>
+    ',
+  );
+  
+  $form['photos_help'] = array(
+    '#markup' => '
+      <ul>
+        <li>Please choose which photos you would like in your Photobook.</li>
+        <li class="image-numbers">You have chosen 10 pages, so you can have between 12 and 62 photos.</li>
+        <li>This is also your last chance to add photos to your order.</li>
+      </ul>',
+  );
+  
+  
+   $form['submit'] = array(
+      '#value' => t('Submit'),
+      '#type' => 'submit',
+  );
+  
+  return $form;
+  
+}
+
+function photobook_order_form_validate($form, &$form_state) {
+  //form_set_error('error', krumo($form_state));
+}
+
+function photobook_order_form_submit($form, &$form_state) {
+  //krumo($form_state);
+}
+
+/**
  * Implements hook_form_alter().
  */
 function photobook_form_alter(&$form, $form_state, $form_id) { 
   //krumo($form);
-  if ($form_id == 'views_form_photobooks_page') {
-    //krumo(photobook_update_cart($form, $form_state));
-    //krumo($form);
-    $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
-    
-    $style_info = field_info_field('field_style');
-    $style_options = $style_info['settings']['allowed_values'];
-    
-    $pages_info = field_info_field('field_pages_list');
-    $pages_options = $pages_info['settings']['allowed_values'];
-    
-    $form['add_to_cart_pages'] = array(
-        '#title' => t('Pages'),
-        '#type' => 'select',
-        '#options' => $pages_options,
-        '#ajax' => array('callback' => 'photobook_update_cart'),
-      );
-    
-    $form['add_to_cart_style'] = array(
-        '#title' => t('Style'),
-        '#type' => 'radios',
-        '#options' => $style_options,
-    );
-    unset($form['actions']['submit']);
-    
-    foreach ($form['add_to_cart_quantity'] as $key => $element) {
-      //krumo($element);
-      if (is_array($element)) {
-        //print_r($_GET['q']);
-        $quantity = isset($_GET['quantity' . $key]) ? $_GET['quantity' . $key] : 0;
-        $form['add_to_cart_quantity'][$key]['#type'] = 'select';
-        $form['add_to_cart_quantity'][$key]['#options'] = array(0,1,2,3,4,5,6,7,8,9,10);
-        $form['add_to_cart_quantity'][$key]['#default_value'] = $quantity;
-        $form['add_to_cart_quantity'][$key]['#ajax']['callback'] = 'photobook_update_cart';
-        unset($form['add_to_cart_quantity'][$key]['#size']);
-      }
-    }
-    //krumo($form);
-  }  
 }
 
 function photobook_get_newest_gallery() {
@@ -61,6 +126,7 @@ function photobook_get_newest_gallery() {
   $result = db_select('node', 'n')
     ->fields('n', array('nid'))
     ->condition('uid', $user->uid,'=')
+    ->condition('type', 'media_gallery','=')
     ->orderBy('created', 'DESC')
     ->range(0,1)
     ->execute()
@@ -68,15 +134,25 @@ function photobook_get_newest_gallery() {
   return $result['nid'];
 }
 
+function photobook_get_product_names() {
+  $query = db_select('commerce_product', 'c');
+  $query->join('field_data_commerce_price', 'f', 'c.product_id = f.entity_id');
+  $query
+    ->fields('c', array('title', 'product_id'))
+    ->condition('c.type', 'photobook','=')
+    ->orderBy('f.commerce_price_amount', 'ASC');
+  $results = $query->execute();
+  return $results;
+}
+
 function photobook_update_cart($form, &$form_state) {
     global $user;
-    //krumo($form);
 
     $field_name = 'add_to_cart_quantity';
     $product_quantities = array();
-    foreach (element_children($form[$field_name]) as $row_id) {
+    foreach ($form[$field_name] as $row_id => $element) {
       // Don't add products that have quantity 0.
-      $quantity = $form_state['values'][$field_name][$row_id];
+      $quantity = $form_state['values'][$row_id];
       if ($quantity > 0) {
         $product_id = $form[$field_name][$row_id]['#product_id'];
         $product_quantities[$product_id] = $quantity;

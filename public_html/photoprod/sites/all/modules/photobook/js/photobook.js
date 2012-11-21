@@ -2,20 +2,29 @@
 	Drupal.behaviors.photobook = {
 			attach: function() {
 		
-				var q2 = $("#edit-add-to-cart-quantity-2").val();
-				var q3 = $("#edit-add-to-cart-quantity-3").val();
-				var q4 = $("#edit-add-to-cart-quantity-4").val();
-				var q5 = $("#edit-add-to-cart-quantity-5").val();
-				var q6 = $("#edit-add-to-cart-quantity-6").val();
-				var q7 = $("#edit-add-to-cart-quantity-7").val();
+				var q2 = $("#edit-2").val();
+				var q3 = $("#edit-3").val();
+				var q4 = $("#edit-4").val();
+				var q5 = $("#edit-5").val();
+				var q6 = $("#edit-6").val();
+				var q7 = $("#edit-7").val();
 				
 				if (q2 != 0 || q3 != 0 || q4 != 0 || q5 != 0 || q6 != 0 || q7 != 0) {
-					$("#edit-add-to-cart-quantity-0").removeAttr("disabled");
-					$("#edit-add-to-cart-quantity-1").removeAttr("disabled");
+					$("#edit-0").removeAttr("disabled");
+					$("#edit-1").removeAttr("disabled");
 				} else {
-					$("#edit-add-to-cart-quantity-0").attr("disabled", "disabled");
-					$("#edit-add-to-cart-quantity-1").attr("disabled", "disabled");
+					$("#edit-0").attr("disabled", "disabled");
+					$("#edit-1").attr("disabled", "disabled");
 				}
+				
+				$('#edit-add-to-cart-pages').change(function() {
+					var pages = parseInt($('#edit-add-to-cart-pages').val());
+					var min = pages + 2;
+					var max = pages * 6 + 2;
+					$("li.image-numbers").text('You have chosen ' + pages + ' pages, so you can have between ' + min + ' and ' + max + ' photos.');
+				});
+				
+				//You have chosen 12 pages, so you can have between 14 and 74 photos.
 		
 		
 				/*var obj = {0:1, 1:2};
