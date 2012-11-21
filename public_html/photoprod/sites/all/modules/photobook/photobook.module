@@ -29,6 +29,25 @@ function photobook_menu() {
   return $items;
 }
 
+/**
+ * Implements hook_user_view().
+ */
+function photobook_user_view($account, $view_mode, $langcode) {
+  $account->content['folders'] =  array(
+    '#type' => 'user_profile_category',
+    '#title' => t('My folders'),
+    '#markup' => '',
+    '#attributes' => array('class' => array('user-folders', 'clearfix')),
+  );
+  
+  $account->content['folders']['view'] = array(
+    '#type' => 'user_profile_item',
+    '#title' => '',
+    '#markup' => views_embed_view('my_folders', 'default', $account->uid),
+    '#attributes' => array('class' => array('my-folders')),
+  );
+}
+
 function photobook_order_form($form, $form_state) {
   
 //krumo($form_state);
@@ -82,12 +101,11 @@ function photobook_order_form($form, $form_state) {
       '#options' => $style_options,
   );
   
-  $nid = photobook_get_newest_gallery();
+  $nid = arg(1);
   
   $form['photos'] = array(
     '#markup' => '
-        <div><a class="colorbox-load" href="node/add/media-gallery?width=900&height=600&iframe=true">Add Gallery</a></div>
-        <div><a class="colorbox-load" href="node/' . $nid . '?width=900&height=600&iframe=true">Arrange your photos</a></div>
+        <div><a class="colorbox-load" href="/node/' . $nid . '?width=900&height=600&iframe=true">Arrange your photos</a></div>
     ',
   );
   
