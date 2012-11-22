@@ -153,11 +153,35 @@ function photobook_order_form_submit($form, &$form_state) {
   //krumo($form_state);
 }
 
+/*
+ * Implements hook_form_FORM_ID_alter().
+ */
+function photobook_form_media_gallery_node_form_alter(&$form, &$form_state) {
+  global $user;
+  if ($user->uid != 1) {
+    unset($form['additional_settings']);
+    unset($form['settings_wrapper']);
+    unset($form['block']);
+  }
+}
+
 /**
  * Implements hook_form_alter().
  */
 function photobook_form_alter(&$form, $form_state, $form_id) { 
-  //krumo($form);
+  //krumo($form);exit;
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ * We have to do this to push the photobook module after media_gallery in the execution order.  Otherwise, we can't alter the media_gallery node form.
+ */
+function photobook_module_implements_alter(&$implementations, $hook) {
+  if (isset($implementations['photobook'])) {
+    $group = $implementations['photobook'];
+    unset($implementations['photobook']);
+    $implementations['photobook'] = $group;
+  }
 }
 
 function photobook_get_newest_gallery() {
