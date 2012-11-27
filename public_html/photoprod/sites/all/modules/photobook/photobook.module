@@ -132,12 +132,6 @@ function photobook_order_form($form, $form_state) {
       </ul>',
   );
   
-   $form['checkout'] = array(
-      '#value' => t('Checkout'),
-      '#type' => 'button',
-      '#ajax' => array('callback' => 'photobook_validate_cart'),
-  );
-  
   return $form;
   
 }
@@ -163,6 +157,7 @@ function photobook_update_cart($form, &$form_state) {
 
   $style_value = $form_state['values']['add_to_cart_style'];
   $pages_value = $form_state['values']['add_to_cart_pages'];
+  $gallery_value = $form_state['values']['add_to_cart_gallery'];
   
   $order = commerce_cart_order_load($user->uid);
   if ($order) {
@@ -185,21 +180,22 @@ function photobook_update_cart($form, &$form_state) {
       $line_item->field_highest_price['und'][] = array('value' => 1);
       $highest_price_set = TRUE;
       $combine = 0;
-      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value);
       if ($quantity > 1) {
         // Reset the products that will take the discount to the products array.
         $quantity = $quantity - 1;
         $line_item = commerce_product_line_item_new($product, $quantity);
-        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value);
       } 
     } else {
       $line_item = commerce_product_line_item_new($product, $quantity);
-      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value);
     }
   }
   $view = views_get_view('shopping_cart');
   $order_summary = $view->preview();
   $commands = array();
+  //$commands[] = ajax_command_alert($form_state['values']['add_to_cart_gallery']);
   $commands[] = ajax_command_replace('.view-shopping-cart', $order_summary);
   $commands[] = ajax_command_invoke('.colorbox-load', 'attr', array('href', '/node/' . $form_state['values']['add_to_cart_gallery'] . '?width=900&height=600&iframe=true&pages=' . $pages_value));
 
@@ -349,12 +345,13 @@ function photobook_get_product_names() {
 /**
  * Helper function used by Ajax callback to add individual line items to an order.
  */
-function photobooks_add_line_item($line_item, $combine, $style_value, $pages_value) {
+function photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value) {
   global $user;
   $line_item->data['context']['product_ids'] = array($product_id);
   $line_item->data['context']['add_to_cart_combine'] = $combine;
   $line_item->field_style['und'][] = array('value' => $style_value);
   $line_item->field_pages_list['und'][] = array('value' => $pages_value);
+  $line_item->field_gallery_node['und'][] = array('target_id' => $gallery_value);
   rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
   commerce_cart_product_add($user->uid, $line_item, $combine);
 }
