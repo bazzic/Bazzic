@@ -48,8 +48,10 @@ function commerce_kickstart_preprocess_page(&$vars) {
 }
 
 function commerce_kickstart_theme_media_gallery_item($variables) {
+  global $user;
   $file_parts = explode('/', $variables['link_path']);
   $fid = $file_parts[3];
+  $nid = $file_parts[2];
   
   $image = $variables['image'];
   $link_path = $variables['link_path'];
@@ -73,7 +75,7 @@ function commerce_kickstart_theme_media_gallery_item($variables) {
   $item = '<div class="media-gallery-item"><div class="top"><div class="top-inset-1"><div class="top-inset-2"></div></div></div><div class="gallery-thumb-outer"><div class="gallery-thumb-inner">';
   // Create a link around the image
   $item .= empty($variables['no_link']) ? l($image, $link_path, array('html' => TRUE, 'attributes' => $attributes)) : $image;
-  $item .= render(drupal_get_form('photobook_gallery_size_form', $fid));
+  $item .= render(drupal_get_form('photobook_gallery_size_form', $fid, $nid));
   // Add sliding door bottom div and close wrappers
   $item .= '</div></div><div class="bottom"><div class="bottom-inset-1"><div class="bottom-inset-2"></div></div></div></div>';
   return $item;

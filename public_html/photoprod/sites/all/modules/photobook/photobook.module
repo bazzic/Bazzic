@@ -28,10 +28,6 @@ function photobook_menu() {
   return $items;
 }
 
-function photobook_file_type_info_alter(&$info) {
-  //print_r($info);
-}
-
 /**
  * Implements hook_user_view().
  */
@@ -51,10 +47,10 @@ function photobook_user_view($account, $view_mode, $langcode) {
   );
 }
 
+/*
+ * This is the main order form.
+ */
 function photobook_order_form($form, $form_state) {
-  
-//krumo($form_state);
-  
   $product_name_results = photobook_get_product_names();
   $product_titles = array();
   foreach ($product_name_results as $record) {
@@ -71,7 +67,7 @@ function photobook_order_form($form, $form_state) {
   );
   
   foreach ($product_titles as $product_id => $title) {
-    $form['add_to_cart_quantity']['add_to_cart_quantity' . $product_id] = array(
+    $form['add_to_cart_quantity'][] = array(
       '#product_id' => $product_id,
       '#title' => $title,
       '#type' => 'select',
@@ -90,11 +86,17 @@ function photobook_order_form($form, $form_state) {
     
   $pages_info = field_info_field('field_pages_list');
   $pages_options = $pages_info['settings']['allowed_values'];
+  
+  $user_galleries_results = photobook_get_user_galleries();
+  foreach($user_galleries_results as $user_galleries_record) {
+    $gallery_options[$user_galleries_record->nid] = $user_galleries_record->title;
+  }
     
   $form['add_to_cart_pages'] = array(
       '#title' => t('Pages'),
       '#type' => 'select',
       '#options' => $pages_options,
+      '#default_value' => 10,
       '#ajax' => array('callback' => 'photobook_update_cart'),
     );
     
@@ -102,13 +104,22 @@ function photobook_order_form($form, $form_state) {
       '#title' => t('Style'),
       '#type' => 'radios',
       '#options' => $style_options,
+      '#ajax' => array('callback' => 'photobook_update_cart'),
   );
   
   $nid = arg(1);
   
+  $form['add_to_cart_gallery'] = array(
+      '#title' => t('My galleries'),
+      '#type' => 'select',
+      '#options' => $gallery_options,
+      '#default_value' => $nid,
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+    );
+  
   $form['photos'] = array(
     '#markup' => '
-        <div><a class="colorbox-load" href="/node/' . $nid . '?width=900&height=600&iframe=true">Arrange your photos</a></div>
+        <div><a class="colorbox-load" href="/node/' . $nid . '?width=900&height=600&iframe=true&pages=10">Arrange your photos</a></div>
     ',
   );
   
@@ -121,53 +132,141 @@ function photobook_order_form($form, $form_state) {
       </ul>',
   );
   
-  
-   $form['submit'] = array(
-      '#value' => t('Submit'),
-      '#type' => 'submit',
+   $form['checkout'] = array(
+      '#value' => t('Checkout'),
+      '#type' => 'button',
+      '#ajax' => array('callback' => 'photobook_validate_cart'),
   );
   
   return $form;
   
 }
 
-function photobook_order_form_validate($form, &$form_state) {
-  if ($form_state['triggering_element']['#type'] == 'submit') {
-    $nid = photobook_get_newest_gallery();
-    $pages = (int)$form_state['values']['add_to_cart_pages'];
-    $gallery = node_load($nid);
-    $num_gallery_images = count($gallery->media_gallery_media['und']);
-    $min = $pages + 2;
-    $max = $pages * 6 + 2;
-    
-    if ($num_gallery_images < $min) {
-      form_set_error('min_error', 'You have less than ' . $min . ' images.');
+/**
+ * Ajax callback used whenever data is selected/changed on the order screen.
+ */
+function photobook_update_cart($form, &$form_state) {
+  global $user;
+
+  $field_name = 'add_to_cart_quantity';
+  $product_quantities = array();
+  foreach ($form[$field_name] as $row_id => $element) {
+    // Don't add products that have quantity 0.
+    $quantity = $form_state['values'][$row_id];
+    if ($quantity > 0) {
+      $product_id = $form[$field_name][$row_id]['#product_id'];
+      $product_quantities[$product_id] = $quantity;
     }
-    
-    if ($num_gallery_images > $max) {
-      form_set_error('max_error', 'You have more than ' . $max . ' images.');
-    }
-    
-    //form_set_error('error', krumo($form_state['triggering_element']));
   }
+
+  $products = commerce_product_load_multiple(array_keys($product_quantities));
+
+  $style_value = $form_state['values']['add_to_cart_style'];
+  $pages_value = $form_state['values']['add_to_cart_pages'];
+  
+  $order = commerce_cart_order_load($user->uid);
+  if ($order) {
+    commerce_cart_order_empty($order);
+  }
+  
+  $product_amounts = array();
+  foreach ($products as $product_id => $product) {
+    $product_amounts[] = $product->commerce_price['und'][0]['amount'];
+  }
+  
+  $highest_price_set = FALSE;
+  foreach ($products as $product_id => $product) {
+    $combine = 1;
+    $quantity = $product_quantities[$product_id];
+    
+    if (max($product_amounts) == $product->commerce_price['und'][0]['amount'] && !$highest_price_set) {
+      // This product will not receive a discount.
+      $line_item = commerce_product_line_item_new($product, 1);
+      $line_item->field_highest_price['und'][] = array('value' => 1);
+      $highest_price_set = TRUE;
+      $combine = 0;
+      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+      if ($quantity > 1) {
+        // Reset the products that will take the discount to the products array.
+        $quantity = $quantity - 1;
+        $line_item = commerce_product_line_item_new($product, $quantity);
+        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+      } 
+    } else {
+      $line_item = commerce_product_line_item_new($product, $quantity);
+      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
+    }
+  }
+  $view = views_get_view('shopping_cart');
+  $order_summary = $view->preview();
+  $commands = array();
+  $commands[] = ajax_command_replace('.view-shopping-cart', $order_summary);
+  $commands[] = ajax_command_invoke('.colorbox-load', 'attr', array('href', '/node/' . $form_state['values']['add_to_cart_gallery'] . '?width=900&height=600&iframe=true&pages=' . $pages_value));
+
+  return array('#type' => 'ajax', '#commands' => $commands);
+}
+
+/*
+ * Validate the number of images in the media gallery.
+ */
+function photobook_validate_cart($form, &$form_state) {
+  $commands = array();
+  $nid = $form_state['values']['gallery_nid'];
+  $pages = (int)$form_state['values']['add_to_cart_pages'];
+  $commands[] = ajax_command_alert($pages);
+  $gallery = node_load($nid);
+  $num_gallery_images = count($gallery->media_gallery_media['und']);
+  $min = $pages + 2;
+  $max = $pages * 6 + 2;
+  $commands[] = ajax_command_alert($num_gallery_images);
+  $commands[] = ajax_command_alert($nid);
+    
+  if ($num_gallery_images < $min) {
+    $commands[] = ajax_command_alert('You have less than ' . $min . ' images.');
+  }
+    
+  if ($num_gallery_images > $max) {
+    $commands[] = ajax_command_alert('You have more than ' . $max . ' images.');
+  }
+  return array('#type' => 'ajax', '#commands' => $commands);
 }
 
 function photobook_order_form_submit($form, &$form_state) {
   //krumo($form_state);
 }
 
-function photobook_gallery_size_form($form, &$form_state, $fid) {
+/*
+ * This form add the size dropdown under each image on the media gallery page.
+ */
+function photobook_gallery_size_form($form, &$form_state, $fid, $nid) {
+  global $user;
+  $pages = $_GET['pages'];
+  
   $image_size_info = field_info_field('field_image_size');
   $options = array('- None -');
   $options += $image_size_info['settings']['allowed_values'];
+  if (in_array('authenticated user', $user->roles) && !in_array('photographer', $user->roles) && !in_array('administrator', $user->roles)) {
+    unset($options['Small']);
+  }
+  
   $file = file_load($fid);
+  
+  $form['pages'] = array(
+    '#type' => 'hidden',
+    '#value' => $pages,
+  );
+  
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $nid,
+  );
   
   $form['fid'] = array(
     '#type' => 'hidden',
     '#value' => $fid,
   );
   
-  $form['size'] = array(
+  $form['size-' . $fid] = array(
     '#type' => 'select',
     '#options' => $options, 
     '#default_value' => $file->field_image_size ? $file->field_image_size['und'][0]['value'] : 0,
@@ -179,6 +278,7 @@ function photobook_gallery_size_form($form, &$form_state, $fid) {
 
 /*
  * Implements hook_form_FORM_ID_alter().
+ * We only want authenticated users to be able to edit the title of the media gallery and that's all.
  */
 function photobook_form_media_gallery_node_form_alter(&$form, &$form_state) {
   global $user;
@@ -208,7 +308,7 @@ function photobook_module_implements_alter(&$implementations, $hook) {
   }
 }
 
-function photobook_get_newest_gallery() {
+/*function photobook_get_newest_gallery() {
   global $user;
   $result = db_select('node', 'n')
     ->fields('n', array('nid'))
@@ -219,8 +319,22 @@ function photobook_get_newest_gallery() {
     ->execute()
     ->fetchAssoc();
   return $result['nid'];
+}*/
+
+function photobook_get_user_galleries() {
+  global $user;
+  $results = db_select('node', 'n')
+    ->fields('n', array('title', 'nid'))
+    ->condition('uid', $user->uid,'=')
+    ->condition('type', 'media_gallery','=')
+    ->orderBy('title', 'ASC')
+    ->execute();
+  return $results;
 }
 
+/**
+ * Helper function to get the product names for the order form.
+ */
 function photobook_get_product_names() {
   $query = db_select('commerce_product', 'c');
   $query->join('field_data_commerce_price', 'f', 'c.product_id = f.entity_id');
@@ -232,68 +346,9 @@ function photobook_get_product_names() {
   return $results;
 }
 
-function photobook_update_cart($form, &$form_state) {
-    global $user;
-
-    $field_name = 'add_to_cart_quantity';
-    $product_quantities = array();
-    foreach ($form[$field_name] as $row_id => $element) {
-      // Don't add products that have quantity 0.
-      $quantity = $form_state['values'][$row_id];
-      if ($quantity > 0) {
-        $product_id = $form[$field_name][$row_id]['#product_id'];
-        $product_quantities[$product_id] = $quantity;
-      }
-    }
-
-    $products = commerce_product_load_multiple(array_keys($product_quantities));
-
-    $style_value = $form_state['values']['add_to_cart_style'];
-    $pages_value = $form_state['values']['add_to_cart_pages'];
-    
-    $order = commerce_cart_order_load($user->uid);
-    if ($order) {
-      commerce_cart_order_empty($order);
-    }
-    
-    $product_amounts = array();
-    foreach ($products as $product_id => $product) {
-      $product_amounts[] = $product->commerce_price['und'][0]['amount'];
-    }
-    
-    $highest_price_set = FALSE;
-    foreach ($products as $product_id => $product) {
-      $combine = 1;
-      $quantity = $product_quantities[$product_id];
-      
-      if (max($product_amounts) == $product->commerce_price['und'][0]['amount'] && !$highest_price_set) {
-        // This product will not receive a discount.
-        $line_item = commerce_product_line_item_new($product, 1);
-        $line_item->field_highest_price['und'][] = array('value' => 1);
-        $highest_price_set = TRUE;
-        $combine = 0;
-        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
-        if ($quantity > 1) {
-          // Reset the products that will take the discount to the products array.
-          $quantity = $quantity - 1;
-          $line_item = commerce_product_line_item_new($product, $quantity);
-          photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
-        } 
-      } else {
-        $line_item = commerce_product_line_item_new($product, $quantity);
-        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value);
-      }
-      
-      
-    }
-    $view = views_get_view('shopping_cart');
-    $order_summary = $view->preview();
-    $commands = array();
-    $commands[] = ajax_command_replace('.view-shopping-cart', $order_summary);
-
-    return array('#type' => 'ajax', '#commands' => $commands);
-  }
-
+/**
+ * Helper function used by Ajax callback to add individual line items to an order.
+ */
 function photobooks_add_line_item($line_item, $combine, $style_value, $pages_value) {
   global $user;
   $line_item->data['context']['product_ids'] = array($product_id);
@@ -304,11 +359,59 @@ function photobooks_add_line_item($line_item, $combine, $style_value, $pages_val
   commerce_cart_product_add($user->uid, $line_item, $combine);
 }
 
+/**
+ * Ajax callback used when a user update an image's size in the gallery.
+ */
 function photobook_gallery_update_image_size($form, &$form_state) {
-  $size_value = $form_state['values']['size'];
-  $file = file_load($form_state['values']['fid']);
-  $file->field_image_size['und'][0]['value'] = $size_value;
-  file_save($file);
+  //return array('#type' => 'ajax', '#commands' => array(ajax_command_alert(print_r($form_state['values']))));
+  $fid_value = $form_state['values']['fid'];
+  $size_value = $form_state['values']['size-' . $fid_value];
+  $nid_value = $form_state['values']['nid'];
+  if ((photobook_count_gallery_image_sizes('Large', $nid_value) >= $form_state['values']['pages']) && $size_value == 'Large') {
+    $current_size = photobook_get_current_size($fid_value)->size;
+    $commands = array();
+    //$commands[] = ajax_command_invoke("select[name='size-" . $form_state['values']['fid'] . "'] option[value='" . $current_size . "']", 'attr', array('selected', 'selected'));
+    $commands[] = ajax_command_alert('You have too many images set to Large');
+    //$commands[] = ajax_command_alert((int)photobook_count_gallery_image_sizes('Large', $form_state['values']['nid']));
+    //$commands[] = ajax_command_alert((int)$form_state['values']['pages']);
+    //$commands[] = ajax_command_invoke('#colorbox iframe', 'attr', array('src', 'node'));
+    //$commands[] = ajax_command_data('#edit-size-' . $form_state['values']['fid'], 'form_state_value_select', $size_id);
+    
+    //$commands[] = ajax_command_alert((int)photobook_count_gallery_image_sizes('Large', $form_state['values']['nid']));
+    return array('#type' => 'ajax', '#commands' => $commands);
+  } else {
+    $file = file_load($fid_value);
+    $file->field_image_size['und'][0]['value'] = $size_value;
+    file_save($file);
+  }
+}
+
+/**
+ * Helper function to see how many images are set to a certain size in a gallery.
+ */
+function photobook_count_gallery_image_sizes($size, $nid) {
+  global $user;
+  $query = db_select('field_data_media_gallery_media', 'media');
+  $query->join('field_data_field_image_size', 'size', 'media.media_gallery_media_fid = size.entity_id');
+  $query
+    ->fields('size', array('field_image_size_value'))
+    ->condition('media.entity_id', $nid,'=')
+    ->condition('size.field_image_size_value', $size,'=');
+  $results = $query->execute();
+  $count = $results->rowCount();
+  return $count;
+}
+
+/**
+ * Helper function to get the current size of an image if we need to switch it back after validation.  Currently not used.
+ */
+function photobook_get_current_size($fid) {
+  $query = db_select('field_data_field_image_size', 'size');
+  $query
+    ->fields('size', array('field_image_size_value'))
+    ->condition('size.entity_id', $fid,'=');
+  $results = $query->execute();
+  return $results;
 }
 
 
