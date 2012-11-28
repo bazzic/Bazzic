@@ -210,6 +210,15 @@ Click images for pop-up examples of each style.'),
       '#ajax' => array('callback' => 'photobook_update_cart'),
   );
   
+  $form['personalisation_fieldset']['add_to_cart_photobook_title'] = array(
+      '#title' => t(''),
+      '#type' => 'textfield',
+      '#size' => 80,
+      '#default_value' => 'Enter a title to be printed on the photobook',
+      '#prefix' => '<span id="title_section">',
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
   $form['personalisation_fieldset']['add_to_cart_typeface'] = array(
       '#title' => t(''),
       '#type' => 'radios',
@@ -221,6 +230,7 @@ Click images for pop-up examples of each style.'),
       '#title' => t('Choose location for the title:'),
       '#type' => 'radios',
       '#options' => $title_loc_options,
+      '#suffix' => '</span>',
       '#ajax' => array('callback' => 'photobook_update_cart'),
   );
   
@@ -258,6 +268,12 @@ function photobook_update_cart($form, &$form_state) {
     $commands[] = ajax_command_invoke('#edit-personalisation-fieldset', 'hide');
   } else {
     $commands[] = ajax_command_invoke('#edit-personalisation-fieldset', 'show');
+  }
+  
+  if ($form_state['values']['add_to_cart_no_title'] == TRUE) {
+    $commands[] = ajax_command_invoke('#title_section', 'hide');
+  } else {
+    $commands[] = ajax_command_invoke('#title_section', 'show');
   }
   
   $field_name = 'add_to_cart_quantity';
