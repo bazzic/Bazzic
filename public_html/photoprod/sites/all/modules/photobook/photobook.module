@@ -51,6 +51,36 @@ function photobook_user_view($account, $view_mode, $langcode) {
  * This is the main order form.
  */
 function photobook_order_form($form, $form_state) {
+  $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
+  
+  // SUPPLY OWN DESIGN
+  $form['add_to_cart_design'] = array(
+      '#title' => t('Supply own design'),
+      '#type' => 'checkbox',
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
+  // 1) ORIENTATION
+  $orientation_info = field_info_field('field_orientation');
+  $orientation_options = $orientation_info['settings']['allowed_values'];
+  
+  $form['orientation_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Choose the orientation of your photobook(s)'),
+    '#description' => t('This refers to the Photobook itself. Your Photos will always be laid out the correct way up.
+(Images below represent a closed Photobook)'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  
+  $form['orientation_fieldset']['add_to_cart_orientation'] = array(
+      //'#title' => t('Style'),
+      '#type' => 'radios',
+      '#options' => $orientation_options,
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
+  // 2) PHOTOBOOKS
   $product_name_results = photobook_get_product_names();
   $product_titles = array();
   foreach ($product_name_results as $record) {
@@ -59,8 +89,9 @@ function photobook_order_form($form, $form_state) {
   
   $form['add_to_cart_quantity'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Photobooks'),
-    '#collapsible' => FALSE,
+    '#title' => t('Choose your Photobook(s)'),
+    '#description' => t(''),
+    '#collapsible' => TRUE,
     '#collapsed' => FALSE,
     '#prefix' => '<table><tr>',
     '#suffix' => '</tr></table>',
@@ -79,57 +110,137 @@ function photobook_order_form($form, $form_state) {
     );
   }
 
-  $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
-    
+  // 3) STYLE
   $style_info = field_info_field('field_style');
   $style_options = $style_info['settings']['allowed_values'];
-    
-  $pages_info = field_info_field('field_pages_list');
-  $pages_options = $pages_info['settings']['allowed_values'];
   
-  $user_galleries_results = photobook_get_user_galleries();
-  foreach($user_galleries_results as $user_galleries_record) {
-    $gallery_options[$user_galleries_record->nid] = $user_galleries_record->title;
-  }
-    
-  $form['add_to_cart_pages'] = array(
-      '#title' => t('Pages'),
-      '#type' => 'select',
-      '#options' => $pages_options,
-      '#default_value' => 10,
-      '#ajax' => array('callback' => 'photobook_update_cart'),
-    );
-    
-  $form['add_to_cart_style'] = array(
-      '#title' => t('Style'),
+  $form['style_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Choose design style'),
+    '#description' => t('Our designers will create a bespoke layout using your photographs and one of the following styles.
+Click images for pop-up examples of each style.'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  
+  $form['style_fieldset']['add_to_cart_style'] = array(
+      '#title' => t(''),
       '#type' => 'radios',
       '#options' => $style_options,
       '#ajax' => array('callback' => 'photobook_update_cart'),
   );
   
+  // 4) PAGES
+  $pages_info = field_info_field('field_pages_list');
+  $pages_options = $pages_info['settings']['allowed_values'];
+  
+  $form['pages_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Choose number of pages:'),
+    '#description' => t(''),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  
+  $form['pages_fieldset']['add_to_cart_pages'] = array(
+    '#title' => t(''),
+    '#type' => 'select',
+    '#options' => $pages_options,
+    '#default_value' => 10,
+    '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
+  // 5) SELECT PHOTOS
+  $user_galleries_results = photobook_get_user_galleries();
+  foreach($user_galleries_results as $user_galleries_record) {
+    $gallery_options[$user_galleries_record->nid] = $user_galleries_record->title;
+  }
+  
   $nid = arg(1);
   
-  $form['add_to_cart_gallery'] = array(
-      '#title' => t('My galleries'),
+  $form['gallery_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Select photos'),
+    '#description' => t(''),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  
+  $form['gallery_fieldset']['add_to_cart_gallery'] = array(
+      '#title' => t(''),
       '#type' => 'select',
       '#options' => $gallery_options,
       '#default_value' => $nid,
       '#ajax' => array('callback' => 'photobook_update_cart'),
     );
   
-  $form['photos'] = array(
+  $form['gallery_fieldset']['photos'] = array(
     '#markup' => '
         <div><a class="colorbox-load" href="/node/' . $nid . '?width=900&height=600&iframe=true&pages=10">Arrange your photos</a></div>
     ',
   );
   
-  $form['photos_help'] = array(
+  $form['gallery_fieldset']['photos_help'] = array(
     '#markup' => '
       <ul>
         <li>Please choose which photos you would like in your Photobook.</li>
         <li class="image-numbers">You have chosen 10 pages, so you can have between 12 and 62 photos.</li>
         <li>This is also your last chance to add photos to your order.</li>
       </ul>',
+  );
+  
+  // 6) PERSONALISATION
+  $typeface_info = field_info_field('field_typeface');
+  $typeface_options = $typeface_info['settings']['allowed_values'];
+  
+  $title_loc_info = field_info_field('field_title_location');
+  $title_loc_options = $title_loc_info['settings']['allowed_values'];
+  
+  $form['personalisation_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Personalisation'),
+    '#description' => t(''),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  
+  $form['personalisation_fieldset']['add_to_cart_no_title'] = array(
+      '#title' => t('I do not wish to have a title'),
+      '#type' => 'checkbox',
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
+  $form['personalisation_fieldset']['add_to_cart_typeface'] = array(
+      '#title' => t(''),
+      '#type' => 'radios',
+      '#options' => $typeface_options,
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
+  $form['personalisation_fieldset']['add_to_cart_title_location'] = array(
+      '#title' => t('Choose location for the title:'),
+      '#type' => 'radios',
+      '#options' => $title_loc_options,
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
+  $form['personalisation_fieldset']['add_to_cart_logo'] = array(
+    '#name' => 'Logo',
+    '#type' => 'file',
+    '#title' => t('Add my logo:'),
+    '#size' => 22,
+  );
+  
+  $form['personalisation_fieldset']['add_to_cart_no_calibration'] = array(
+      '#title' => t('Tick if you <u>do not</u> want free photo calibration / colour correction.'),
+      '#type' => 'checkbox',
+      '#ajax' => array('callback' => 'photobook_update_cart'),
+  );
+  
+  $form['personalisation_fieldset']['add_to_cart_no_black_and_white'] = array(
+      '#title' => t('Do not change colour photos to black and white (our designers may change some photos to b/w for a more artistic feel).'),
+      '#type' => 'checkbox',
+      '#ajax' => array('callback' => 'photobook_update_cart'),
   );
   
   return $form;
@@ -141,12 +252,20 @@ function photobook_order_form($form, $form_state) {
  */
 function photobook_update_cart($form, &$form_state) {
   global $user;
-
+  $commands = array();
+  
+  if ($form_state['values']['add_to_cart_design'] == TRUE) {
+    $commands[] = ajax_command_invoke('#edit-personalisation-fieldset', 'hide');
+  } else {
+    $commands[] = ajax_command_invoke('#edit-personalisation-fieldset', 'show');
+  }
+  
   $field_name = 'add_to_cart_quantity';
   $product_quantities = array();
   foreach ($form[$field_name] as $row_id => $element) {
     // Don't add products that have quantity 0.
-    $quantity = $form_state['values'][$row_id];
+    //krumo($row_id);exit;
+    $quantity = is_numeric($row_id) ? $form_state['values'][$row_id] : 0;
     if ($quantity > 0) {
       $product_id = $form[$field_name][$row_id]['#product_id'];
       $product_quantities[$product_id] = $quantity;
@@ -154,10 +273,6 @@ function photobook_update_cart($form, &$form_state) {
   }
 
   $products = commerce_product_load_multiple(array_keys($product_quantities));
-
-  $style_value = $form_state['values']['add_to_cart_style'];
-  $pages_value = $form_state['values']['add_to_cart_pages'];
-  $gallery_value = $form_state['values']['add_to_cart_gallery'];
   
   $order = commerce_cart_order_load($user->uid);
   if ($order) {
@@ -174,32 +289,59 @@ function photobook_update_cart($form, &$form_state) {
     $combine = 1;
     $quantity = $product_quantities[$product_id];
     
+    // Check to see if this is the highest priced product.  If so, don't give a discount.  If there are multiple
+    // products at this price, split the non-discounted product into a separate line item so the remaining products
+    // can get the discount.
     if (max($product_amounts) == $product->commerce_price['und'][0]['amount'] && !$highest_price_set) {
       // This product will not receive a discount.
       $line_item = commerce_product_line_item_new($product, 1);
       $line_item->field_highest_price['und'][] = array('value' => 1);
       $highest_price_set = TRUE;
       $combine = 0;
-      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value);
+      photobooks_add_line_item($line_item, $combine, $form_state['values']);
       if ($quantity > 1) {
         // Reset the products that will take the discount to the products array.
         $quantity = $quantity - 1;
         $line_item = commerce_product_line_item_new($product, $quantity);
-        photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value);
+        photobooks_add_line_item($line_item, $combine, $form_state['values']);
       } 
     } else {
       $line_item = commerce_product_line_item_new($product, $quantity);
-      photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value);
+      photobooks_add_line_item($line_item, $combine, $form_state['values']);
     }
   }
   $view = views_get_view('shopping_cart');
   $order_summary = $view->preview();
-  $commands = array();
   //$commands[] = ajax_command_alert($form_state['values']['add_to_cart_gallery']);
   $commands[] = ajax_command_replace('.view-shopping-cart', $order_summary);
-  $commands[] = ajax_command_invoke('.colorbox-load', 'attr', array('href', '/node/' . $form_state['values']['add_to_cart_gallery'] . '?width=900&height=600&iframe=true&pages=' . $pages_value));
+  $commands[] = ajax_command_invoke('.colorbox-load', 'attr', array('href', '/node/' . $form_state['values']['add_to_cart_gallery'] . '?width=900&height=600&iframe=true&pages=' . $form_state['values']['add_to_cart_pages']));
 
   return array('#type' => 'ajax', '#commands' => $commands);
+}
+
+/**
+ * Helper function used by Ajax callback to add individual line items to an order.
+ */
+function photobooks_add_line_item($line_item, $combine, $values) {
+  global $user;
+  //$line_item->data['context']['product_ids'] = array($product_id);
+  $line_item->data['context']['add_to_cart_combine'] = $combine;
+  $line_item->field_supply_own_design['und'][] = array('value' => $values['add_to_cart_design']);
+  $line_item->field_orientation['und'][] = array('value' => $values['add_to_cart_orientation']);
+  $line_item->field_style['und'][] = array('value' => $values['add_to_cart_style']);
+  $line_item->field_pages_list['und'][] = array('value' => $values['add_to_cart_pages']);
+  $line_item->field_gallery_node['und'][] = array('target_id' => $values['add_to_cart_gallery']);
+  $line_item->field_no_title['und'][] = array('value' => $values['add_to_cart_no_title']);
+  $line_item->field_typeface['und'][] = array('value' => $values['add_to_cart_typeface']);
+  $line_item->field_title_location['und'][] = array('value' => $values['add_to_cart_title_location']);
+  //krumo($values['add_to_cart_logo']);exit;
+  if ($values['add_to_cart_logo']) {
+    $line_item->field_my_logo['und'][] = array('fid' => $values['add_to_cart_logo']);
+  }
+  $line_item->field_no_calibration['und'][] = array('value' => $values['add_to_cart_no_calibration']);
+  $line_item->field_no_black_and_white['und'][] = array('value' => $values['add_to_cart_no_black_and_white']);
+  rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
+  commerce_cart_product_add($user->uid, $line_item, $combine);
 }
 
 /*
@@ -340,20 +482,6 @@ function photobook_get_product_names() {
     ->orderBy('f.commerce_price_amount', 'ASC');
   $results = $query->execute();
   return $results;
-}
-
-/**
- * Helper function used by Ajax callback to add individual line items to an order.
- */
-function photobooks_add_line_item($line_item, $combine, $style_value, $pages_value, $gallery_value) {
-  global $user;
-  $line_item->data['context']['product_ids'] = array($product_id);
-  $line_item->data['context']['add_to_cart_combine'] = $combine;
-  $line_item->field_style['und'][] = array('value' => $style_value);
-  $line_item->field_pages_list['und'][] = array('value' => $pages_value);
-  $line_item->field_gallery_node['und'][] = array('target_id' => $gallery_value);
-  rules_invoke_event('commerce_product_calculate_sell_price', $line_item);
-  commerce_cart_product_add($user->uid, $line_item, $combine);
 }
 
 /**
