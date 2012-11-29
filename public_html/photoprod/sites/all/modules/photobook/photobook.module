@@ -215,6 +215,10 @@ Click images for pop-up examples of each style.'),
       '#type' => 'textfield',
       '#size' => 80,
       '#default_value' => 'Enter a title to be printed on the photobook',
+      '#attributes' => array( 
+        'onfocus' => 'inputFocus(this)',
+        'onblur' => 'inputBlur(this)', 
+      ),
       '#prefix' => '<span id="title_section">',
       '#ajax' => array('callback' => 'photobook_update_cart'),
   );

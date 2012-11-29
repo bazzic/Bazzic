@@ -1,3 +1,36 @@
+//Variable to save prompt messages
+var fieldPrompts = new Array();
+function inputFocus(fieldObj) {
+	if(typeof(fieldPrompts[fieldObj.id])=="undefined" || fieldPrompts[fieldObj.id]==fieldObj.value) {
+		fieldPrompts[fieldObj.id] = fieldObj.value;
+		fieldObj.value = '';
+	}
+	if(fieldObj.name=="password") {
+		var fieldId=fieldObj.id;
+		fieldObj.blur();
+		$("#password_repl").html('<input class="krowa" type="password" name="password" id="'+fieldId+'" value="" onblur="inputBlur(this)" />');
+		$("#"+fieldId).focus();
+		$("#"+fieldId).select();
+		inputElSubmit(fieldId);
+	}
+	else {
+		fieldObj.focus();
+	}
+}
+
+function inputBlur(fieldObj) {
+	if (fieldObj.value=='') {
+		var fieldId=fieldObj.id;
+		var defaultVal = fieldPrompts[fieldId];
+		if(fieldObj.name=="password") {
+			$("#password_repl").html('<input class="krowa" type="text" name="password" id="'+fieldId+'" value="'+defaultVal+'" onfocus="inputFocus(this)" />');
+		}
+		else {
+			fieldObj.value=defaultVal;
+		}
+	}
+}
+
 (function ($) {
 	Drupal.behaviors.photobook = {
 			attach: function() {
