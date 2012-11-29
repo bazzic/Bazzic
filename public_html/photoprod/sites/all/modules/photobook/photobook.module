@@ -93,12 +93,14 @@ function photobook_order_form($form, $form_state) {
     '#description' => t(''),
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
-    '#prefix' => '<table><tr>',
-    '#suffix' => '</tr></table>',
+  );
+  
+  $form['add_to_cart_quantity']['open_table'] = array(
+    '#markup' => '<table><tr>',
   );
   
   foreach ($product_titles as $product_id => $title) {
-    $form['add_to_cart_quantity'][] = array(
+    $form['add_to_cart_quantity'][$product_id] = array(
       '#product_id' => $product_id,
       '#title' => $title,
       '#type' => 'select',
@@ -109,6 +111,10 @@ function photobook_order_form($form, $form_state) {
       //'#default_value' => $form_state['values']['add_to_cart_quantity' . $product_id],
     );
   }
+  
+  $form['add_to_cart_quantity']['close_table'] = array(
+    '#markup' => '</tr></table>',
+  );
 
   // 3) STYLE
   $style_info = field_info_field('field_style');
