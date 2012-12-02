@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Superfish module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function superfish_uninstall() {
+  db_delete('variable')->condition('name', '%%superfish%%', 'LIKE')->execute();
+  db_delete('block')->condition('module', 'superfish')->execute();
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function superfish_requirements($phase) {
+  $requirements = array();
+  // Ensure translations do not break at install time
+  $t = get_t();
+
+  if ($phase == 'install' && !drupal_get_path('module', 'libraries')) {
+    $requirements['superfish']['severity'] = REQUIREMENT_ERROR;
+    $requirements['superfish']['description'] = $t('Superfish module requires the <a href="@url">Libraries module</a> to be installed.', array('@url' => 'http://drupal.org/project/libraries'));
+  }
+  if (module_exists('libraries')) {
+    $requirements['superfish']['title'] = $t('Superfish library');
+    $library = libraries_get_libraries();
+    if (isset($library['superfish'])) {
+      $requirements['superfish']['value'] = $t('Installed');
+      $requirements['superfish']['severity'] = REQUIREMENT_OK;
+    }
+    else {
+      $requirements['superfish']['value'] = $t('Not installed');
+      $requirements['superfish']['severity'] = REQUIREMENT_ERROR;
+      $requirements['superfish']['description'] = $t('Please download the Superfish library from <a href="@url">@url</a>.', array('@url' => 'http://drupal.org/project/superfish'));
+    }
+  }
+  return $requirements;
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function superfish_update_7100() {
+}
