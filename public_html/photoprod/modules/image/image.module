@@ -780,7 +780,7 @@ function image_style_deliver($style, $scheme) {
 
   // If using the private scheme, let other modules provide headers and
   // control access to the file.
-  if ($scheme == 'FIXMEprivate') {
+  if ($scheme == 'private') {
     if (file_exists($derivative_uri)) {
       file_download($scheme, file_uri_target($derivative_uri));
     }
