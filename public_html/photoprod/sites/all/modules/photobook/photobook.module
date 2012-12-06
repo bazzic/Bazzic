@@ -244,7 +244,7 @@ Click images for pop-up examples of each style.'),
   
   $form['personalisation_fieldset']['add_to_cart_logo'] = array(
     '#name' => 'Logo',
-    '#type' => 'file',
+    '#type' => 'media',
     '#title' => t('Add my logo:'),
     '#size' => 22,
   );
@@ -335,8 +335,8 @@ function photobook_update_cart_submit($form, &$form_state) {
   $order->field_no_title['und'][] = array('value' => $form_state['values']['add_to_cart_no_title']);
   $order->field_typeface['und'][] = array('value' => $form_state['values']['add_to_cart_typeface']);
   $order->field_title_location['und'][] = array('value' => $form_state['values']['add_to_cart_title_location']);
-  if ($form_state['values']['add_to_cart_logo']) {
-    $order->field_my_logo['und'][] = array('fid' => $form_state['values']['add_to_cart_logo']);
+  if ($form_state['values']['fid']) {
+    $order->field_my_logo['und'][] = array('fid' => $form_state['values']['fid']);
   }
   $order->field_no_calibration['und'][] = array('value' => $form_state['values']['add_to_cart_no_calibration']);
   $order->field_no_black_and_white['und'][] = array('value' => $form_state['values']['add_to_cart_no_black_and_white']);
