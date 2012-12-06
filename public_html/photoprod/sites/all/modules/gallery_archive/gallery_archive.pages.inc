@@ -34,14 +34,22 @@ function gallery_archive_gallery($node) {
     $images = $node->media_gallery_media[LANGUAGE_NONE];
 
     // Copy all the full-resolution images into $tmp_directory.
-    foreach ($images as $image) {
+    $total = count($images);
+    foreach ($images as $key => $image) {
       $file = file_load($image['fid']);
-      //krumo($file);
+      if ($key == 0) {
+        $archive_file_name = preg_replace('/(.*)\./', 'front_cover.', $file->filename);
+      } elseif ($key == $total - 1) {
+        $archive_file_name = preg_replace('/(.*)\./', 'back_cover.', $file->filename);
+      } else {
+        $archive_file_name = preg_replace('/(.*)\./', str_pad((string)$key, 3, "0", STR_PAD_LEFT) . '.', $file->filename);
+      }
+
       // Get the path to the full-resolution image.
       $image_to_copy = drupal_realpath($file->uri);
 
       // Copy image to $tmp_directory
-      file_unmanaged_copy($image_to_copy, $tmp_directory, FILE_EXISTS_REPLACE);
+      file_unmanaged_copy($image_to_copy, $tmp_directory . '/' . $archive_file_name, FILE_EXISTS_REPLACE);
     }
     $tar_file = new stdClass();
     $tar_file->uid = 1;
