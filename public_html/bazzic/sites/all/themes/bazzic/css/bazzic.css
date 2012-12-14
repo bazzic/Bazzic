@@ -675,7 +675,8 @@ h2.block-title {
 body.page-blog h1,
 body.context-contact h1,
 body.page-portfolio h1,
-body.front h1.title {
+body.front h1.title,
+body.context-services h1.title {
   display:none;
 }
 
