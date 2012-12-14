@@ -6,7 +6,6 @@
  */
 
 function gallery_archive_file_download_access($file_item, $entity_type, $entity) {
-  krumo($entity);
   if (user_access('download gallery archive')) {
     return TRUE;
   }
