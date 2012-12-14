@@ -1,0 +1,77 @@
+diff --git a/templates/html.tpl.php b/templates/html.tpl.php
+index 0f2ff39..658ae19 100644
+--- a/templates/html.tpl.php
++++ b/templates/html.tpl.php
+@@ -7,44 +7,7 @@
+   <?php print $scripts; ?>
+   <!--[if lt IE 9]><script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+   
+-   <?php 
+-    if (! isset($_SESSION['color']) ) {
+-	  $_SESSION['color'] = 'blue';
+-    }
+-    $flag = 0;
+-
+-    switch(arg(1)) {
+-      // Red color
+-      case '13':
+-        $_SESSION['color'] = 'blue';
+-        $flag = 1;
+-        break;
+-
+-      // Dark Red color
+-      case '14':
+-        $_SESSION['color'] = 'green';
+-        $flag = 1;
+-        break;
+-		
+-      // Teal color
+-      case '15':
+-        $_SESSION['color'] = 'red';
+-        $flag = 1;
+-        break;
+-		
+-      default:
+-        break;
+-    }
+-    
+-    if($flag) header('Location:'.base_path());   
+-    
+-    if($_SESSION['color'] != 'green' and $_SESSION['color'] != 'red' and $_SESSION['color'] != 'blue') $_SESSION['color'] = 'blue';
+-	
+    
+-    print '<link href="'.base_path().$directory .'/css/' . $_SESSION['color'] . '-style.css" media="all" rel="stylesheet" type="text/css"/>';
+-	
+-  ?>
+-  
+ </head>
+ <body<?php print $attributes;?>>
+   <div id="skip-link">
+diff --git a/theme-settings.php b/theme-settings.php
+index 01b296c..cea480d 100644
+--- a/theme-settings.php
++++ b/theme-settings.php
+@@ -39,21 +39,8 @@ function alphorn_form_system_theme_settings_alter(&$form, $form_state) {
+     '#collapsed' => FALSE,
+   );
+ 
+-  // General Settings
+-  $form['st_container']['general_settings'] = array(
+-    '#type' => 'fieldset',
+-    '#title' => t('General settings'),
+-    '#collapsible' => TRUE,
+-    '#collapsed' => FALSE,
+-  );
+-  // Theme Color
+-  $form['st_container']['general_settings']['them_color_config'] = array(
+-    '#type' => 'fieldset',
+-    '#title' => t('Color setting'),
+-    '#collapsible' => TRUE,
+-    '#collapsed' => TRUE,
+-  );
+-  $form['st_container']['general_settings']['them_color_config']['theme_color'] = array(
++
++  $form['st_container']['general_settings']['theme_color_config']['theme_color'] = array(
+     '#type' => 'select',
+     '#title' => t('Color'),
+     '#default_value' => theme_get_setting('theme_color'),
