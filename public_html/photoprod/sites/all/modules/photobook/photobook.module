@@ -1,26 +1,15 @@
 <?php
 
 /**
- * Implements hook_commerce_order_status_info_alter().
+ * Implements hook_commerce_order_status_info().
  */
-function photobook_commerce_order_status_info_alter(&$order_statuses) {
+function photobook_commerce_order_status_info() {
+  $order_statuses = array();
   $order_statuses['new'] = array(
     'name' => 'new',
     'title' => t('New order'),
     'state' => 'pending',
     'weight' => 3,
-  );
-  $order_statuses['pending'] = array(
-    'name' => 'pending',
-    'title' => t('Order in process'),
-    'state' => 'pending',
-    'weight' => 4,
-  );
-  $order_statuses['processing'] = array(
-    'name' => 'processing',
-    'title' => t('Reading to Print'),
-    'state' => 'pending',
-    'weight' => 5,
   );
   $order_statuses['printing'] = array(
     'name' => 'printing',
@@ -28,8 +17,16 @@ function photobook_commerce_order_status_info_alter(&$order_statuses) {
     'state' => 'pending',
     'weight' => 6,
   );
-
+  
   return $order_statuses;
+}
+
+/**
+ * Implements hook_commerce_order_status_info_alter().
+ */
+function photobook_commerce_order_status_info_alter(&$order_statuses) {
+  $order_statuses['pending']['title'] = t('Order in process');
+  $order_statuses['processing']['title'] = t('Ready to Print');
 }
 
 /**
