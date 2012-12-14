@@ -4,12 +4,6 @@
  * Implements hook_commerce_order_status_info_alter().
  */
 function photobook_commerce_order_status_info_alter(&$order_statuses) {
-  $order_statuses['canceled'] = array(
-    'name' => 'canceled',
-    'title' => t('Canceled'),
-    'state' => 'canceled',
-  );
-
   $order_statuses['new'] = array(
     'name' => 'new',
     'title' => t('New order'),
@@ -33,12 +27,6 @@ function photobook_commerce_order_status_info_alter(&$order_statuses) {
     'title' => t('Print in process'),
     'state' => 'pending',
     'weight' => 6,
-  );
-
-  $order_statuses['completed'] = array(
-    'name' => 'completed',
-    'title' => t('Completed'),
-    'state' => 'completed',
   );
 
   return $order_statuses;
