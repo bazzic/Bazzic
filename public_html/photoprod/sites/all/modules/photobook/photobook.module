@@ -53,8 +53,25 @@ function photobook_menu() {
     'description' => 'Create new photobook order',
     'type' => MENU_LOCAL_TASK,
   );
+  $items['user/register/colorbox'] = array(
+    'title' => 'Register',
+    'page callback' => 'colorbox_register',
+    'access callback' => 'user_is_anonymous',
+    'type' => MENU_CALLBACK,
+  );
   
   return $items;
+}
+
+function colorbox_register() {
+  // Redirect failed logins to the standard user register form.
+  if (isset($_POST['form_id']) && $_POST['form_id'] == 'user_register_form') {
+    return drupal_get_form('user_register_form');
+  }
+  $form = drupal_get_form('user_register_form');
+  if (!empty($form)) {
+    print drupal_render($form);
+  }
 }
 
 /**
@@ -559,6 +576,10 @@ function photobook_form_media_gallery_node_form_alter(&$form, &$form_state) {
     unset($form['settings_wrapper']);
     unset($form['block']);
   }
+}
+
+function photobook_form_user_register_form_alter(&$form, &$form_state) {
+  $form['account']['mail']['#description'] = 'A valid e-mail address. All e-mails from the system will be sent to this address. The e-mail address is not made public<br/>and will only be used if you wish to receive a new password or wish to receive certain news or notifications by e-mail.'; 
 }
 
 /**
