@@ -15,17 +15,6 @@ function photobook_preprocess_commerce_line_item_summary(&$variable) {
   );
 }
 
-function photobook_commerce_line_item_summary_link_info_alter(&$links) {
-  // Alter the weight of the checkout link to display before the view cart link.
-  
-  $links['view_cart']['href'] = 'cart?width=900&height=600&iframe=true';
-  $links['view_cart']['attributes']['class'] = 'colorbox-load';
-//krumo($links);
-  if (!empty($links['checkout'])) {
-    $links['checkout']['weight'] = -5;
-  }
-}
-
 /**
  * Implements hook_commerce_order_status_info().
  */
