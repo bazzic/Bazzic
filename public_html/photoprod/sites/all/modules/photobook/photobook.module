@@ -80,6 +80,7 @@ function photobook_user_view($account, $view_mode, $langcode) {
  * This is the main order form.
  */
 function photobook_order_form($form, $form_state) {
+  global $user;
   $form['#attached']['js'][] = drupal_get_path('module', 'photobook') . '/js/photobook.js';
   $nid = arg(1);
   $form['gallery_nid'] = array(
@@ -271,12 +272,17 @@ Click images for pop-up examples of each style.'),
       '#suffix' => '</span>',
   );
   
-  $form['personalisation_fieldset']['add_to_cart_logo'] = array(
-    '#name' => 'Logo',
-    '#type' => 'media',
-    '#title' => t('Add my logo:'),
-    '#size' => 22,
-  );
+  $logo_roles = array('photographer', 'administrator', 'site admin');
+  foreach ($logo_roles as $logo_role) {
+    if (in_array($logo_role, $user->roles)) {
+      $form['personalisation_fieldset']['add_to_cart_logo'] = array(
+        '#name' => 'Logo',
+        '#type' => 'file',
+        '#title' => t('Add my logo:'),
+        '#size' => 22,
+      );
+    }
+  }
   
   $form['personalisation_fieldset']['add_to_cart_no_calibration'] = array(
     '#title' => t('Tick if you <u>do not</u> want free photo calibration / colour correction.'),
