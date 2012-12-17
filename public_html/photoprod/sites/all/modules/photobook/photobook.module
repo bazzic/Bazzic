@@ -1,6 +1,32 @@
 <?php
 
 /**
+ * Implements hook_preprocess_HOOK().
+ * Link cart block items to cart.
+ */
+function photobook_preprocess_commerce_line_item_summary(&$variable) {
+  $variable['cart_items'] = l(
+    $variable['quantity'], 
+    'cart', 
+    array(
+        'attributes' => array('class' => array('line-item-quantity', 'colorbox-load')),
+        'query' => array('width' => '900', 'height' => '600', 'iframe' => 'true'),
+    )
+  );
+}
+
+function photobook_commerce_line_item_summary_link_info_alter(&$links) {
+  // Alter the weight of the checkout link to display before the view cart link.
+  
+  $links['view_cart']['href'] = 'cart?width=900&height=600&iframe=true';
+  $links['view_cart']['attributes']['class'] = 'colorbox-load';
+//krumo($links);
+  if (!empty($links['checkout'])) {
+    $links['checkout']['weight'] = -5;
+  }
+}
+
+/**
  * Implements hook_commerce_order_status_info().
  */
 function photobook_commerce_order_status_info() {
@@ -577,6 +603,20 @@ function photobook_form_media_gallery_node_form_alter(&$form, &$form_state) {
     unset($form['block']);
   }
 }
+
+/*
+ * Implements hook_form_FORM_ID_alter().
+ * We only want authenticated users to be able to edit the title of the media gallery and that's all.
+ */
+function photobook_form_views_form_commerce_cart_form_default_alter(&$form, &$form_state) {
+  $colorbox = array_key_exists('iframe', $_GET) ? $_GET['iframe'] : FALSE;
+  if ($colorbox) {
+    unset($form['actions']['checkout']);
+    unset($form['actions']['submit']);
+  }
+}
+
+
 
 function photobook_form_user_register_form_alter(&$form, &$form_state) {
   $form['account']['mail']['#description'] = 'A valid e-mail address. All e-mails from the system will be sent to this address. The e-mail address is not made public<br/>and will only be used if you wish to receive a new password or wish to receive certain news or notifications by e-mail.'; 
