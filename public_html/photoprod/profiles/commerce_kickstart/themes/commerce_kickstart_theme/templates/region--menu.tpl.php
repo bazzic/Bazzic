@@ -4,7 +4,7 @@
 
     <?php endif; ?>
     <nav class="navigation">
-    <div class="primary-menu">
+    <div>
     <?php print $content; ?>
     </div>
     </nav>
