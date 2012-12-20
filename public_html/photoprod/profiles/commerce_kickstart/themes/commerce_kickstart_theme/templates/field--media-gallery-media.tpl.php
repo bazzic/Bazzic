@@ -63,7 +63,13 @@ HTML comment.
         $page = $delta;
       }
     ?>
-      <div class="field-item <?php print $delta % 2 ? 'odd' : 'even'; ?>"<?php print $item_attributes[$delta]; ?>><span><?php print $page; ?></span><?php print render($item); ?></div>
+      <div class="field-item <?php print $delta % 2 ? 'odd' : 'even'; ?>"<?php print $item_attributes[$delta]; ?>>
+        <?php $colorbox = array_key_exists('iframe', $_GET) ? $_GET['iframe'] : FALSE; ?>
+        <?php if(arg(0) != 'user'): ?>
+          <span><?php print $page; ?></span>
+        <?php endif; ?>  
+        <?php print render($item); ?>
+      </div>
     <?php endforeach; ?>
   </div>
 </div>
