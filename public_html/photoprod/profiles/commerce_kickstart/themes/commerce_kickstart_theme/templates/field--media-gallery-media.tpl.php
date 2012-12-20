@@ -53,21 +53,17 @@ HTML comment.
     <div class="field-label"<?php print $title_attributes; ?>><?php print $label ?>:&nbsp;</div>
   <?php endif; ?>
   <div class="field-items"<?php print $content_attributes; ?>>
+    <?php foreach ($items as $delta => $item): ?>
     <?php 
-      $rows = ceil((float)count($items)/5);
-      $columns = 5;
-      $item = 0;
-      $item_count = count($items);
-      print $item_count;
+      if ($delta == 0) {
+        $page = 'Front cover';
+      } elseif ($delta == count($items) - 1) {
+        $page = 'Back cover';
+      } else {
+        $page = $delta;
+      }
     ?>
-    <?php for ($row = 0; $row < $rows; $row++): ?>
-      <?php for ($column = 1; $column <= $columns; $column++): ?>
-        <h3 class="field-label"><?php print $row * $columns + $column; ?></h3>
-      <?php endfor; ?>
-      <?php for ($column = 1; $column <= $columns; $column++): ?>
-        <div class="field-item <?php print $item % 2 ? 'odd' : 'even'; ?>"<?php print $item_attributes[$item]; ?>><?php print render($items[$item]); ?></div>
-        <?php $item++; ?>
-      <?php endfor; ?>
-    <?php endfor; ?>
+      <div class="field-item <?php print $delta % 2 ? 'odd' : 'even'; ?>"<?php print $item_attributes[$delta]; ?>><span><?php print $page; ?></span><?php print render($item); ?></div>
+    <?php endforeach; ?>
   </div>
 </div>

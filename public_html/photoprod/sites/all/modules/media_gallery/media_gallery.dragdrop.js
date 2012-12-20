@@ -100,6 +100,16 @@ Drupal.mediaGallerySort.handle_update = function (event, ui) {
         newId = $item.attr('id').replace(/---new/, '');
         $item.removeClass('media-gallery-to-reorder');
         $item.attr('id', newId);
+// HACK START: This reorders the image headers when the images are reordered.
+        if (i == 0) {
+          page = 'Front cover';
+        } else if (i == newOrder.length - 1) {
+          page = 'Back cover';
+        } else {
+          page = i;
+        }
+        $("div #media-gallery-media-" + i + " span").text(page);
+// HACK END
       }
     }
     sortable.sortable('enable');
