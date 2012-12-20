@@ -1,5 +1,46 @@
 <?php
 
+function photobook_block_info() {
+  $blocks['photobook_promotional_banner'] = array(
+    'info' => t('Photobook promotional banner'),
+    'weight' => '0',
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  return $blocks;
+}
+
+function photobook_block_view($delta = '') {
+  $block = array(
+    'subject' => NULL,
+    'content' => NULL,
+  );
+
+  switch ($delta) {
+    case 'photobook_promotional_banner':
+      $items = array(
+        commerce_kickstart_block_build_element(t('SAVE 15%'), NULL, 'promotional_banner_saving'),
+        t('On all purchases of subsequent photobooks'),
+        commerce_kickstart_block_build_element(l
+          (t('Offer Details'), 
+          'save_15', 
+          array(
+            'query' => array(
+              'width' => '200', 
+              'height' => '200',
+              'iframe' => true,
+            ),
+            'attributes' => array(
+              'class' => 'colorbox-load',
+            )
+          )
+        ), NULL, 'promotional_banner_special_offer'),
+      );
+      $block['content'] = commerce_kickstart_block_build_element(implode(' ', $items), 'promotional_banner', NULL, 'div');
+      break;
+  }
+  return $block;
+}
+
 /**
  * Implements hook_preprocess_HOOK().
  * Link cart block items to cart.
