@@ -161,9 +161,9 @@ body {
     right: 10px;
     text-transform: capitalize; }
 
-.block-shipping-discount {
+.block-photobook-vat {
   /* HP blocks: Side advert */ }
-  .block-shipping-discount #shipping {
+  .block-photobook-vat #shipping {
     background-color: #000000;
     border: 6px solid #ffffff;
     color: #2698F2;
@@ -173,26 +173,56 @@ body {
     text-align: center;
     margin-top: 20px;
     padding: 10px 5px 20px 5px; }
-  .block-shipping-discount #shipping #shipping_message span {
+  .block-photobook-vat #shipping #shipping_message span {
+    border-bottom: 1px solid #ffffff;
+    display: block;
+    color: white;
+    font-size: 20px;
+    padding: 30px 0 4px 0;
+    text-transform: uppercase; }
+  .block-photobook-vat #shipping #shipping_message span em {
+    font-size: 27px;
+    font-style: normal; }
+  .block-photobook-vat #shipping #shipping_currency {
+    display: block;
+    font-size: 27px;
+    margin-top: 2px; }
+  .block-photobook-vat #shipping #shipping_message {
+    font-family: "Open Sans", sans-serif;
+    font-weight: 400; }
+  .block-photobook-vat #shipping #shipping_message span,
+  .block-photobook-vat #shipping #shipping_message span em,
+  .block-photobook-vat #shipping #shipping_currency {
+    font-family: "Open Sans", sans-serif;
+    font-weight: 700; }
+    
+.block-photobook-delivery {
+  /* HP blocks: Side advert */ }
+  .block-photobook-delivery #delivery {
+    background-color: #000000;
+    border: 6px solid #ffffff;
+    color: #2698F2;
+    display: block;
+    font-size: 13px;
+    line-height: 24px;
+    text-align: center;
+    margin-top: 20px;
+    padding: 10px 5px 20px 5px; }
+  .block-photobook-delivery #delivery #delivery_message span {
     border-bottom: 1px solid #ffffff;
     display: block;
     color: white;
     font-size: 20px;
     padding: 10px 0 4px 0;
     text-transform: uppercase; }
-  .block-shipping-discount #shipping #shipping_message span em {
+  .block-photobook-delivery #delivery #delivery_message span em {
     font-size: 27px;
     font-style: normal; }
-  .block-shipping-discount #shipping #shipping_currency {
-    display: block;
-    font-size: 27px;
-    margin-top: 2px; }
-  .block-shipping-discount #shipping #shipping_message {
+  .block-photobook-delivery #delivery #delivery_message {
     font-family: "Open Sans", sans-serif;
     font-weight: 400; }
-  .block-shipping-discount #shipping #shipping_message span,
-  .block-shipping-discount #shipping #shipping_message span em,
-  .block-shipping-discount #shipping #shipping_currency {
+  .block-photobook-delivery #delivery #delivery_message span,
+  .block-photobook-delivery #delivery #delivery_message span em{
     font-family: "Open Sans", sans-serif;
     font-weight: 700; }
 

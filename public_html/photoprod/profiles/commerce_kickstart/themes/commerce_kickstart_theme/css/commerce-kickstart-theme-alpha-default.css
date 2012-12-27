@@ -91,13 +91,31 @@
   left: -10px;
   width: 100%; }
 
-.block-shipping-discount {
+.block-photobook-vat {
   /* HP blocks: Side advert */
   position: absolute;
-  left: -50px;
+  left: 870px;
   top: 85px;
   z-index: 100; }
-  .block-shipping-discount #shipping {
+  .block-photobook-vat #shipping {
+    border-color: #FFF;
+    -moz-border-radius: 80px;
+    -webkit-border-radius: 80px;
+    -khtml-border-radius: 80px;
+    border-radius: 80px;
+    height: 120px;
+    line-height: 24px;
+    padding: 10px 5px;
+    margin-top: 0;
+    width: 130px; }
+    
+.block-photobook-delivery {
+  /* HP blocks: Side advert */
+  position: absolute;
+  left: 870px;
+  top: 285px;
+  z-index: 100; }
+  .block-photobook-delivery #delivery {
     border-color: #FFF;
     -moz-border-radius: 80px;
     -webkit-border-radius: 80px;

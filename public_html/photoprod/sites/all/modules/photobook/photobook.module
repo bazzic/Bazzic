@@ -6,6 +6,16 @@ function photobook_block_info() {
     'weight' => '0',
     'cache' => DRUPAL_CACHE_PER_ROLE,
   );
+  $blocks['photobook_vat'] = array(
+    'info' => t('Photobook VAT'),
+    'weight' => '0',
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  $blocks['photobook_delivery'] = array(
+    'info' => t('Photobook Delivery'),
+    'weight' => '0',
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
   return $blocks;
 }
 
@@ -36,6 +46,18 @@ function photobook_block_view($delta = '') {
         ), NULL, 'promotional_banner_special_offer'),
       );
       $block['content'] = commerce_kickstart_block_build_element(implode(' ', $items), 'promotional_banner', NULL, 'div');
+      break;
+    case 'photobook_vat':
+      $items = array(
+        commerce_kickstart_block_build_element(t('<span>Zero VAT</span> Now lower prices'), 'shipping_message'),
+      );
+      $block['content'] = commerce_kickstart_block_build_element(implode('', $items), 'shipping', NULL, 'div');
+      break;
+    case 'photobook_delivery':
+      $items = array(
+        commerce_kickstart_block_build_element(t('<span>Free UK Delivery</span> International delivery available'), 'delivery_message'),
+      );
+      $block['content'] = commerce_kickstart_block_build_element(implode('', $items), 'delivery', NULL, 'div');
       break;
   }
   return $block;
