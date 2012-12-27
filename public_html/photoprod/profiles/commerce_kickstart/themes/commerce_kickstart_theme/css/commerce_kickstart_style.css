@@ -369,3 +369,13 @@ div.messages.commerce-kickstart-add-to-cart {
   background: url("../images/btn_twitter.png") no-repeat; }
 .not-logged-in #block-connector-one-click-block #edit-oauthconnector-google {
   background: url("../images/btn_google.png") no-repeat; }
+  
+/**************************************************
+* --
+* 9. Photobook custom css
+* --
+**************************************************/
+  
+body.node-type-promo-popup div h1#page-title {
+  font-size:14px;
+}
