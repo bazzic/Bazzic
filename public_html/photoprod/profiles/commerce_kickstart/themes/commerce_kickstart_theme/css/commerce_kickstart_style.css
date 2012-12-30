@@ -90,7 +90,7 @@ body {
 .block-shopping-cart-block .content {
   background: white url("../images/picto_cart.png") 5px 5px no-repeat; }
   .block-shopping-cart-block .content .view-shopping-cart .line-item-summary ul.links {
-    background-color: #2698F2; }
+    background-color: #00B9ED; }
 
 /**************************************************
 * --
@@ -130,7 +130,7 @@ body {
 */
 #promotional_banner {
   /* HP blocks: Top advert */
-  background-color: #2698F2;
+  background-color: #00B9ED;
   color: #FFFFFF;
   font-family: 'Open Sans', sans-serif;
   font-size: 16px;
@@ -152,7 +152,7 @@ body {
     -webkit-border-radius: 4px;
     -khtml-border-radius: 4px;
     border-radius: 4px;
-    color: #2698F2;
+    color: #00B9ED;
     font-size: 14px;
     font-weight: 700;
     padding: 4px 12px;
@@ -166,7 +166,7 @@ body {
   .block-photobook-vat #shipping {
     background-color: #000000;
     border: 6px solid #ffffff;
-    color: #2698F2;
+    color: #00B9ED;
     display: block;
     font-size: 13px;
     line-height: 24px;
@@ -201,7 +201,7 @@ body {
   .block-photobook-delivery #delivery {
     background-color: #000000;
     border: 6px solid #ffffff;
-    color: #2698F2;
+    color: #00B9ED;
     display: block;
     font-size: 13px;
     line-height: 24px;
@@ -356,9 +356,9 @@ div.messages.commerce-kickstart-add-to-cart {
   background-color: #d6e5ec;
   border-color: #6bb0cb; }
   div.messages.commerce-kickstart-add-to-cart .message-inner .added-product-title {
-    color: #2698f2; }
+    color: #00B9ED; }
   div.messages.commerce-kickstart-add-to-cart .message-inner .button-wrapper .button.checkout {
-    background-color: #2698F2; }
+    background-color: #00B9ED; }
   div.messages.commerce-kickstart-add-to-cart .message-inner .button-wrapper .button.continue {
     background-color: #b3b3b3; }
   div.messages.commerce-kickstart-add-to-cart .message-inner .commerce-kickstart-add-to-cart-close {
@@ -369,7 +369,7 @@ div.messages.commerce-kickstart-add-to-cart {
 .node-product-type .field-name-body .read-less a {
   background: url("../images/btn_read_less.png") left top no-repeat; }
 .node-product-type .field-name-field-product form.commerce-add-to-cart .form-submit {
-  background: #2698f2 url("../images/bg_add_to_cart.png") 90% 50% no-repeat; }
+  background: #00B9ED url("../images/bg_add_to_cart.png") 90% 50% no-repeat; }
 
 /**************************************************
 * --
