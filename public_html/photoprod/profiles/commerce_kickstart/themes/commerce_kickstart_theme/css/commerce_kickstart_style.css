@@ -409,3 +409,7 @@ div.messages.commerce-kickstart-add-to-cart {
 body.node-type-promo-popup div h1#page-title {
   font-size:14px;
 }
+
+.hidden {
+  display: none;
+}
